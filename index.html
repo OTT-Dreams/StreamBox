@@ -960,33 +960,55 @@ function loadVideoUrl(url){
   if(url.endsWith('.m3u8') || url.includes('m3u8')){
     loadHLS(url); return;
   }
+  if(url.endsWith('.mkv') || url.includes('.mkv')){
+    loadDirect(url, 'MKV'); return;
+  }
+  if(url.endsWith('.webm') || url.includes('.webm')){
+    loadDirect(url, 'WebM'); return;
+  }
   loadMP4(url);
 }
 
+// MKV / WebM এবং যেকোনো direct file সরাসরি load
+function loadDirect(url, fmt){
+  log(`${fmt} ফাইল লোড হচ্ছে...`, 'inf');
+  if(fmt === 'MKV'){
+    log('⚠️ MKV: H.264 codec থাকলে চলবে, H.265 চলবে না', 'wrn');
+  }
+  document.getElementById('playerEmpty').style.display = 'none';
+  const video = document.getElementById('mainVideo');
+  video.style.display = 'block';
+  document.getElementById('btnDl').disabled = !isHost;
+  if(hls){ hls.destroy(); hls = null; }
+  directPlay(url);
+}
+
 async function loadMP4(url){
-  log('MP4 লিংক বিশ্লেষণ করছি...','inf');
+  log('লিংক বিশ্লেষণ করছি...','inf');
   document.getElementById('playerEmpty').style.display = 'none';
   const video = document.getElementById('mainVideo');
   video.style.display = 'block';
   document.getElementById('btnDl').disabled = !isHost;
 
-  // Viewer: সরাসরি load করো, HEAD/MediaSource skip
+  if(hls){ hls.destroy(); hls = null; }
+
+  // Viewer — সরাসরি play
   if(!isHost){
-    video.src = url;
-    video.load();
-    video.play().catch(()=>{});
-    attachVideoEvents(video);
-    video.addEventListener('canplay', ()=> loadAudioTracks(), {once:true});
-    log('ভিডিও লোড হচ্ছে...','ok');
-    fakeChunks(24);
+    directPlay(url);
     return;
   }
 
-  // Host: Try HEAD for size
+  // Host: HEAD request চেষ্টা
   try{
     const r = await fetch(url, {method:'HEAD'});
+    if(!r.ok){ directPlay(url); return; }
+
     const cl = r.headers.get('content-length');
     const ar = r.headers.get('accept-ranges');
+    const ct = r.headers.get('content-type') || 'video/mp4';
+
+    log(`কন্টেন্ট: ${ct}`,'inf');
+
     if(cl){
       totalSize = parseInt(cl);
       totalChunks = Math.ceil(totalSize/CHUNK_SIZE);
@@ -995,22 +1017,44 @@ async function loadMP4(url){
       chunkStates = new Array(totalChunks).fill('empty');
       renderChunks();
       log(`ফাইল: ${fmtBytes(totalSize)} | ${totalChunks} চাংক`,'ok');
+    }
 
-      if(ar === 'bytes' && window.MediaSource){
-        tryMediaSource(url, r.headers.get('content-type')||'video/mp4');
+    // Range + MediaSource সাপোর্ট থাকলে chunk mode
+    if(ar === 'bytes' && cl && window.MediaSource){
+      const mime = getMime(ct);
+      if(MediaSource.isTypeSupported(mime)){
+        tryMediaSource(url, ct);
         return;
+      } else {
+        log('MediaSource এই format সাপোর্ট করে না — সরাসরি লোড','wrn');
       }
     }
-  }catch(e){}
+  }catch(e){
+    log('HEAD ব্লক — সরাসরি স্ট্রিম চেষ্টা করছি...','wrn');
+  }
 
-  // Fallback: direct src
+  directPlay(url);
+}
+
+// সরাসরি video.src দিয়ে play — সব format এর জন্য universal fallback
+function directPlay(url){
+  const video = document.getElementById('mainVideo');
   document.getElementById('playerEmpty').style.display = 'none';
   video.style.display = 'block';
   video.src = url;
   video.load();
   video.play().catch(()=>{});
   attachVideoEvents(video);
-  video.addEventListener('canplay', ()=> loadAudioTracks(), {once:true});
+  video.addEventListener('canplay', ()=>{ log('✓ ভিডিও চালু হয়েছে ▶','ok'); loadAudioTracks(); }, {once:true});
+  video.addEventListener('error', ()=>{
+    const ec = video.error ? video.error.code : '?';
+    if(ec === 4){
+      log('✗ এই browser এ codec সাপোর্ট নেই (H.265/HEVC চলে না)','err');
+      log('💡 Chrome-এ MP4 H.264 অথবা Firefox-এ চেষ্টা করো','wrn');
+    } else {
+      log(`✗ ভিডিও লোড হয়নি (error ${ec}) — link চেক করো`,'err');
+    }
+  }, {once:true});
   log('সরাসরি স্ট্রিম শুরু হচ্ছে','ok');
   fakeChunks(24);
 }
