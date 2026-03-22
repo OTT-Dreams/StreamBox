@@ -5,10 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StreamBox — Watch Together</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.10/hls.min.js"></script>
+<!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue, off, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, set, onValue, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+  // ============================================================
+  // 🔥 FIREBASE CONFIG — এখানে তোমার config বসাও
+  // ============================================================
   const firebaseConfig = {
     apiKey: "AIzaSyDQw9ksYuDM451LjtHpnUPoRx4Mh9zEOOE",
     authDomain: "movie-960db.firebaseapp.com",
@@ -18,6 +22,7 @@
     messagingSenderId: "169250488305",
     appId: "1:169250488305:web:a5e6612249a863b9d20e50"
   };
+  // ============================================================
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
@@ -26,7 +31,6 @@
   window._fbSet = set;
   window._fbOnValue = onValue;
   window._fbOff = off;
-  window._fbRemove = remove;
   window._firebaseReady = true;
   document.dispatchEvent(new Event('firebaseReady'));
 </script>
@@ -59,19 +63,27 @@ body{
   overflow-x:hidden;
 }
 
+/* ---- BACKGROUND GLOW ---- */
 body::before{
-  content:'';position:fixed;top:-200px;left:-200px;
+  content:'';
+  position:fixed;
+  top:-200px;left:-200px;
   width:600px;height:600px;
   background:radial-gradient(circle,rgba(232,68,90,0.08) 0%,transparent 70%);
-  pointer-events:none;z-index:0;
+  pointer-events:none;
+  z-index:0;
 }
 body::after{
-  content:'';position:fixed;bottom:-200px;right:-200px;
+  content:'';
+  position:fixed;
+  bottom:-200px;right:-200px;
   width:600px;height:600px;
   background:radial-gradient(circle,rgba(96,165,250,0.06) 0%,transparent 70%);
-  pointer-events:none;z-index:0;
+  pointer-events:none;
+  z-index:0;
 }
 
+/* ---- HEADER ---- */
 header{
   display:flex;align-items:center;justify-content:space-between;
   padding:1rem 2rem;
@@ -103,154 +115,421 @@ header{
   border:1px solid var(--border);
   border-radius:20px;
 }
-.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background 0.3s}
+.conn-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--muted);
+  transition:background 0.3s;
+}
 .conn-dot.live{background:var(--acc3);box-shadow:0 0 6px var(--acc3)}
 .conn-dot.error{background:var(--acc)}
 
-.container{max-width:1140px;margin:0 auto;padding:1.5rem;position:relative;z-index:1;}
+/* ---- LAYOUT ---- */
+.container{
+  max-width:1140px;
+  margin:0 auto;
+  padding:1.5rem;
+  position:relative;z-index:1;
+}
 
+/* ---- SCREENS ---- */
 .screen{display:none}
 .screen.active{display:block}
 
-/* ---- HOME ---- */
-.home-hero{text-align:center;padding:3rem 1rem 2rem;}
-.home-hero h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;line-height:1.15;margin-bottom:0.75rem;}
-.home-hero h1 span{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+/* ---- HOME SCREEN ---- */
+.home-hero{
+  text-align:center;
+  padding:3rem 1rem 2rem;
+}
+.home-hero h1{
+  font-size:clamp(2rem,5vw,3.2rem);
+  font-weight:800;
+  line-height:1.15;
+  margin-bottom:0.75rem;
+}
+.home-hero h1 span{
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
 .home-hero p{color:var(--muted);font-size:1.05rem;margin-bottom:2.5rem}
 
-.home-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:700px;margin:0 auto;}
+.home-cards{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  max-width:700px;
+  margin:0 auto;
+}
 
 .home-card{
-  background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);
-  padding:2rem 1.5rem;cursor:pointer;
-  transition:border-color 0.2s,transform 0.2s,box-shadow 0.2s;text-align:center;
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:2rem 1.5rem;
+  cursor:pointer;
+  transition:border-color 0.2s,transform 0.2s,box-shadow 0.2s;
+  text-align:center;
 }
-.home-card:hover{border-color:var(--acc);transform:translateY(-3px);box-shadow:0 8px 32px rgba(232,68,90,0.15);}
+.home-card:hover{
+  border-color:var(--acc);
+  transform:translateY(-3px);
+  box-shadow:0 8px 32px rgba(232,68,90,0.15);
+}
 .home-card .card-icon{font-size:2.5rem;margin-bottom:1rem;display:block}
 .home-card h3{font-size:1.1rem;font-weight:700;margin-bottom:0.4rem}
 .home-card p{font-size:0.85rem;color:var(--muted);line-height:1.5}
 
-/* ---- JOIN/CREATE ---- */
-.join-wrap{max-width:480px;margin:3rem auto;background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;}
+/* ---- JOIN SCREEN ---- */
+.join-wrap{
+  max-width:480px;
+  margin:3rem auto;
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:2rem;
+}
 .join-wrap h2{font-size:1.4rem;font-weight:700;margin-bottom:0.4rem}
 .join-wrap p{color:var(--muted);font-size:0.9rem;margin-bottom:1.5rem}
 
 .field{margin-bottom:1rem}
-.field label{display:block;font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;}
-.field input{width:100%;padding:0.75rem 1rem;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Outfit',sans-serif;font-size:0.95rem;outline:none;transition:border-color 0.2s;}
+.field label{
+  display:block;
+  font-size:0.75rem;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--muted);
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+.field input{
+  width:100%;
+  padding:0.75rem 1rem;
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--text);
+  font-family:'Outfit',sans-serif;
+  font-size:0.95rem;
+  outline:none;
+  transition:border-color 0.2s;
+}
 .field input:focus{border-color:var(--acc)}
 .field input::placeholder{color:var(--muted)}
 
-.btn-primary{width:100%;padding:0.85rem;background:linear-gradient(135deg,var(--acc),#c0392b);border:none;border-radius:10px;color:#fff;font-family:'Outfit',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;transition:opacity 0.2s,transform 0.15s;margin-top:0.5rem;}
+.btn-primary{
+  width:100%;
+  padding:0.85rem;
+  background:linear-gradient(135deg,var(--acc),#c0392b);
+  border:none;border-radius:10px;
+  color:#fff;
+  font-family:'Outfit',sans-serif;
+  font-weight:700;font-size:1rem;
+  cursor:pointer;
+  transition:opacity 0.2s,transform 0.15s;
+  margin-top:0.5rem;
+}
 .btn-primary:hover{opacity:0.9;transform:translateY(-1px)}
 .btn-primary:active{transform:scale(0.98)}
 .btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
 
-.btn-back{background:none;border:1px solid var(--border);border-radius:10px;padding:0.6rem 1.2rem;color:var(--muted);font-family:'Outfit',sans-serif;font-size:0.85rem;cursor:pointer;transition:border-color 0.2s,color 0.2s;margin-bottom:1.5rem;display:inline-flex;align-items:center;gap:6px;}
+.divider{
+  display:flex;align-items:center;gap:10px;
+  margin:1.2rem 0;
+  color:var(--muted);font-size:0.8rem;
+}
+.divider::before,.divider::after{
+  content:'';flex:1;height:1px;background:var(--border);
+}
+
+.btn-back{
+  background:none;border:1px solid var(--border);
+  border-radius:10px;padding:0.6rem 1.2rem;
+  color:var(--muted);font-family:'Outfit',sans-serif;
+  font-size:0.85rem;cursor:pointer;
+  transition:border-color 0.2s,color 0.2s;
+  margin-bottom:1.5rem;
+  display:inline-flex;align-items:center;gap:6px;
+}
 .btn-back:hover{border-color:var(--acc);color:var(--text)}
 
-/* ---- PLAYER LAYOUT ---- */
-.player-layout{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;}
+/* ---- PLAYER SCREEN ---- */
+.player-layout{
+  display:grid;
+  grid-template-columns:1fr 300px;
+  gap:16px;
+  align-items:start;
+}
 
 @media(max-width:768px){
   .player-layout{grid-template-columns:1fr}
   .home-cards{grid-template-columns:1fr}
 }
 
-/* ---- URL BAR ---- */
-.url-bar{display:flex;gap:8px;margin-bottom:12px;}
-.url-bar input{flex:1;padding:0.65rem 1rem;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.8rem;outline:none;transition:border-color 0.2s;}
+/* Video section */
+.video-section{}
+
+/* URL bar */
+.url-bar{
+  display:flex;gap:8px;margin-bottom:12px;
+}
+.url-bar input{
+  flex:1;
+  padding:0.65rem 1rem;
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--text);
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.8rem;
+  outline:none;
+  transition:border-color 0.2s;
+}
 .url-bar input:focus{border-color:var(--acc)}
 .url-bar input::placeholder{color:var(--muted)}
 
-.btn-sm{padding:0.65rem 1rem;background:var(--acc);border:none;border-radius:10px;color:#fff;font-family:'Outfit',sans-serif;font-weight:600;font-size:0.85rem;cursor:pointer;white-space:nowrap;transition:opacity 0.2s;}
+.btn-sm{
+  padding:0.65rem 1rem;
+  background:var(--acc);
+  border:none;border-radius:10px;
+  color:#fff;
+  font-family:'Outfit',sans-serif;
+  font-weight:600;font-size:0.85rem;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:opacity 0.2s;
+}
 .btn-sm:hover{opacity:0.85}
-.btn-sm.ghost{background:var(--s3);border:1px solid var(--border);color:var(--text);}
+.btn-sm.ghost{
+  background:var(--s3);
+  border:1px solid var(--border);
+  color:var(--text);
+}
 .btn-sm.ghost:hover{border-color:var(--acc);background:var(--s4)}
 .btn-sm:disabled{opacity:0.4;cursor:not-allowed}
 
-/* ---- PLAYER BOX ---- */
+/* Player */
 .player-box{
-  background:#000;border-radius:var(--radius);overflow:hidden;
-  border:1px solid var(--border);aspect-ratio:16/9;
-  position:relative;display:flex;align-items:center;justify-content:center;
+  background:#000;
+  border-radius:var(--radius);
+  overflow:hidden;
+  border:1px solid var(--border);
+  aspect-ratio:16/9;
+  position:relative;
+  display:flex;align-items:center;justify-content:center;
 }
 
-.player-empty{text-align:center;color:var(--muted);}
+.player-empty{
+  text-align:center;color:var(--muted);
+}
 .player-empty .big-icon{font-size:3rem;display:block;margin-bottom:0.5rem;opacity:0.3}
 
-/* FIX: video সবসময় absolute, display দিয়ে toggle */
 #mainVideo{
   width:100%;height:100%;
+  display:none;
   background:#000;
   outline:none;
-  position:absolute;top:0;left:0;
-  display:none;
 }
 
+/* Sync overlay */
 .sync-toast{
   position:absolute;top:12px;left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,0.85);border:1px solid var(--acc);border-radius:8px;
-  padding:6px 14px;font-size:0.8rem;font-family:'JetBrains Mono',monospace;color:var(--acc);
-  opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;z-index:10;
+  background:rgba(0,0,0,0.85);
+  border:1px solid var(--acc);
+  border-radius:8px;
+  padding:6px 14px;
+  font-size:0.8rem;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--acc);
+  opacity:0;
+  transition:opacity 0.3s;
+  pointer-events:none;
+  white-space:nowrap;
 }
 .sync-toast.show{opacity:1}
 
-/* ---- CONTROLS ---- */
-.controls-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;margin-bottom:12px;}
+/* Controls bar */
+.controls-bar{
+  display:flex;gap:8px;flex-wrap:wrap;
+  margin-top:10px;margin-bottom:12px;
+}
 
+/* Audio track selector */
 .track-selector{
   display:flex;align-items:center;gap:8px;
-  background:var(--s1);border:1px solid var(--border);border-radius:10px;
-  padding:0.5rem 0.75rem;font-size:0.82rem;
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:0.5rem 0.75rem;
+  font-size:0.82rem;
 }
 .track-selector label{color:var(--muted);font-size:0.75rem;white-space:nowrap}
 .track-selector select{
-  background:var(--s3);border:1px solid var(--border);border-radius:6px;
-  color:var(--text);font-family:'Outfit',sans-serif;font-size:0.82rem;
-  padding:4px 8px;outline:none;cursor:pointer;min-width:120px;
+  background:var(--s3);
+  border:1px solid var(--border);
+  border-radius:6px;
+  color:var(--text);
+  font-family:'Outfit',sans-serif;
+  font-size:0.82rem;
+  padding:2px 6px;
+  outline:none;
+  cursor:pointer;
 }
-.track-selector select option{background:var(--s2);color:var(--text);}
 
-/* ---- CHUNK VISUALIZER ---- */
-.chunk-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px;}
-.chunk-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.chunk-title{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
-.chunk-info{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);}
-.chunk-grid{display:flex;flex-wrap:wrap;gap:3px;min-height:36px;}
-.ck{width:18px;height:18px;border-radius:3px;background:var(--s3);border:1px solid rgba(255,255,255,0.05);transition:background 0.3s,box-shadow 0.2s,transform 0.15s;}
+/* Chunk visualizer */
+.chunk-wrap{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:12px;
+  margin-bottom:12px;
+}
+.chunk-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:8px;
+}
+.chunk-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.7rem;color:var(--muted);
+  letter-spacing:1.5px;text-transform:uppercase;
+}
+.chunk-info{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.7rem;color:var(--muted);
+}
+.chunk-grid{
+  display:flex;flex-wrap:wrap;gap:3px;
+  min-height:36px;
+}
+.ck{
+  width:18px;height:18px;border-radius:3px;
+  background:var(--s3);
+  border:1px solid rgba(255,255,255,0.05);
+  transition:background 0.3s,box-shadow 0.2s,transform 0.15s;
+}
 .ck.loaded{background:#4ade80;border-color:#4ade80}
 .ck.active{background:#e8445a;border-color:#e8445a;box-shadow:0 0 6px #e8445a;transform:scaleY(1.2)}
 .ck.loading{background:#ff8c42;border-color:#ff8c42;animation:blink 0.7s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 
 /* ---- SIDEBAR ---- */
-.room-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:12px;}
-.room-card h3{font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:1rem;}
+.sidebar{}
 
-.room-code-display{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.room-code-val{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:700;letter-spacing:4px;color:var(--acc);}
-.btn-copy{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;border-radius:6px;transition:color 0.2s,background 0.2s;}
+/* Room card */
+.room-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:1.25rem;
+  margin-bottom:12px;
+}
+.room-card h3{
+  font-size:0.75rem;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--muted);
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-bottom:1rem;
+}
+
+.room-code-display{
+  background:var(--s2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:0.75rem 1rem;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+.room-code-val{
+  font-family:'JetBrains Mono',monospace;
+  font-size:1.4rem;
+  font-weight:700;
+  letter-spacing:4px;
+  color:var(--acc);
+}
+.btn-copy{
+  background:none;border:none;
+  color:var(--muted);cursor:pointer;
+  font-size:16px;padding:4px;
+  border-radius:6px;
+  transition:color 0.2s,background 0.2s;
+}
 .btn-copy:hover{color:var(--text);background:var(--s3)}
 
-.viewers-row{display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--muted);margin-bottom:10px;}
+.viewers-row{
+  display:flex;align-items:center;gap:8px;
+  font-size:0.82rem;color:var(--muted);
+  margin-bottom:10px;
+}
 .viewer-dot{width:8px;height:8px;border-radius:50%;background:var(--acc3);box-shadow:0 0 5px var(--acc3)}
 
-.btn-leave{width:100%;padding:0.6rem;background:rgba(232,68,90,0.1);border:1px solid rgba(232,68,90,0.3);border-radius:8px;color:var(--acc);font-family:'Outfit',sans-serif;font-weight:600;font-size:0.82rem;cursor:pointer;transition:background 0.2s;}
+.btn-leave{
+  width:100%;
+  padding:0.6rem;
+  background:rgba(232,68,90,0.1);
+  border:1px solid rgba(232,68,90,0.3);
+  border-radius:8px;
+  color:var(--acc);
+  font-family:'Outfit',sans-serif;
+  font-weight:600;font-size:0.82rem;
+  cursor:pointer;
+  transition:background 0.2s;
+}
 .btn-leave:hover{background:rgba(232,68,90,0.2)}
 
-.stats-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:12px;}
-.stats-card h3{font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:1rem;}
-.stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.83rem;}
+/* Stats card */
+.stats-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:1.25rem;
+  margin-bottom:12px;
+}
+.stats-card h3{
+  font-size:0.75rem;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--muted);
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-bottom:1rem;
+}
+.stat-row{
+  display:flex;justify-content:space-between;
+  align-items:center;
+  padding:5px 0;
+  border-bottom:1px solid var(--border);
+  font-size:0.83rem;
+}
 .stat-row:last-child{border-bottom:none}
 .stat-row .sk{color:var(--muted)}
 .stat-row .sv{font-family:'JetBrains Mono',monospace;font-weight:500;color:var(--text)}
 .stat-row .sv.green{color:var(--acc3)}
 .stat-row .sv.red{color:var(--acc)}
 
-.log-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;}
-.log-card h3{font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:0.75rem;}
-.log-list{max-height:200px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:0.7rem;line-height:1.9;}
+/* Log card */
+.log-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:1.25rem;
+}
+.log-card h3{
+  font-size:0.75rem;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--muted);
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-bottom:0.75rem;
+}
+.log-list{
+  max-height:180px;
+  overflow-y:auto;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.7rem;
+  line-height:1.9;
+}
 .log-list::-webkit-scrollbar{width:3px}
 .log-list::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
 .le{display:flex;gap:8px}
@@ -261,11 +540,30 @@ header{
 .lm.inf{color:var(--acc4)}
 .lm.wrn{color:var(--acc2)}
 
-/* ---- DOWNLOAD BAR ---- */
-.dl-bar-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:12px;}
-.dl-bar-wrap h3{font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:0.75rem;}
+/* Download bar */
+.dl-bar-wrap{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:1rem 1.25rem;
+  margin-bottom:12px;
+}
+.dl-bar-wrap h3{
+  font-size:0.75rem;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--muted);
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-bottom:0.75rem;
+}
 .dl-progress-track{height:4px;background:var(--s3);border-radius:2px;margin-bottom:8px}
-.dl-progress-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px;transition:width 0.3s;width:0%;}
+.dl-progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--acc),var(--acc2));
+  border-radius:2px;
+  transition:width 0.3s;
+  width:0%;
+}
 .dl-info{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted)}
 .dl-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 </style>
@@ -286,7 +584,7 @@ header{
   </div>
 </header>
 
-<!-- HOME SCREEN -->
+<!-- ==================== HOME SCREEN ==================== -->
 <div class="screen active" id="screenHome">
   <div class="container">
     <div class="home-hero">
@@ -308,7 +606,7 @@ header{
   </div>
 </div>
 
-<!-- CREATE SCREEN -->
+<!-- ==================== CREATE SCREEN ==================== -->
 <div class="screen" id="screenCreate">
   <div class="container">
     <button class="btn-back" onclick="goHome()">← ফিরে যাও</button>
@@ -317,7 +615,7 @@ header{
       <p>ভিডিও লিংক দাও এবং তোমার নাম দাও</p>
       <div class="field">
         <label>ভিডিও লিংক</label>
-        <input type="text" id="createUrl" placeholder="https://example.com/video.mp4 অথবা .m3u8"/>
+        <input type="text" id="createUrl" placeholder="https://example.com/video.mp4"/>
       </div>
       <div class="field">
         <label>তোমার নাম</label>
@@ -328,7 +626,7 @@ header{
   </div>
 </div>
 
-<!-- JOIN SCREEN -->
+<!-- ==================== JOIN SCREEN ==================== -->
 <div class="screen" id="screenJoin">
   <div class="container">
     <button class="btn-back" onclick="goHome()">← ফিরে যাও</button>
@@ -348,36 +646,40 @@ header{
   </div>
 </div>
 
-<!-- PLAYER SCREEN -->
+<!-- ==================== PLAYER SCREEN ==================== -->
 <div class="screen" id="screenPlayer">
   <div class="container">
     <div class="player-layout">
 
       <!-- LEFT: VIDEO -->
       <div class="video-section">
+        <!-- URL bar (host only) -->
         <div class="url-bar" id="urlBar">
           <input type="text" id="videoUrl" placeholder="ভিডিও লিংক পেস্ট করো (MP4, M3U8, HLS)..."/>
           <button class="btn-sm" onclick="loadVideo()">▶ লোড</button>
         </div>
 
+        <!-- Player -->
         <div class="player-box" id="playerBox">
           <div class="player-empty" id="playerEmpty">
             <span class="big-icon">🎬</span>
             <p>ভিডিও লিংক দাও</p>
           </div>
-          <video id="mainVideo" controls playsinline></video>
+          <video id="mainVideo" controls></video>
           <div class="sync-toast" id="syncToast"></div>
         </div>
 
+        <!-- Controls -->
         <div class="controls-bar">
           <div class="track-selector" id="trackSel" style="display:none">
-            <label>🌐 Audio:</label>
+            <label>🌐 ভাষা:</label>
             <select id="audioTrackSel" onchange="switchAudioTrack(this.value)"></select>
           </div>
           <button class="btn-sm ghost" id="btnDl" disabled onclick="startDownload()">⬇ ডাউনলোড</button>
           <button class="btn-sm ghost" onclick="clearVideo()">↺ রিসেট</button>
         </div>
 
+        <!-- Chunk visualizer -->
         <div class="chunk-wrap">
           <div class="chunk-header">
             <div class="chunk-title">// চাংক বাফার</div>
@@ -388,6 +690,7 @@ header{
           </div>
         </div>
 
+        <!-- Download bar -->
         <div class="dl-bar-wrap" id="dlBarWrap" style="display:none">
           <h3>// ডাউনলোড</h3>
           <div class="dl-progress-track"><div class="dl-progress-fill" id="dlFill"></div></div>
@@ -400,6 +703,8 @@ header{
 
       <!-- RIGHT: SIDEBAR -->
       <div class="sidebar">
+
+        <!-- Room card -->
         <div class="room-card">
           <h3>// Room</h3>
           <div class="room-code-display">
@@ -416,9 +721,9 @@ header{
           <button class="btn-leave" onclick="leaveRoom()">← Room ছাড়ো</button>
         </div>
 
+        <!-- Stats card -->
         <div class="stats-card">
           <h3>// তথ্য</h3>
-          <div class="stat-row"><span class="sk">মোড</span><span class="sv" id="statMode">—</span></div>
           <div class="stat-row"><span class="sk">মোট চাংক</span><span class="sv" id="statTotal">—</span></div>
           <div class="stat-row"><span class="sk">লোড হয়েছে</span><span class="sv green" id="statLoaded">0</span></div>
           <div class="stat-row"><span class="sk">ফাইল সাইজ</span><span class="sv" id="statSize">—</span></div>
@@ -427,10 +732,12 @@ header{
           <div class="stat-row"><span class="sk">Role</span><span class="sv" id="statRole">—</span></div>
         </div>
 
+        <!-- Log -->
         <div class="log-card">
           <h3>// লগ</h3>
           <div class="log-list" id="logList"></div>
         </div>
+
       </div>
     </div>
   </div>
@@ -451,7 +758,7 @@ let chunkStates = [];
 let loadedChunks = 0;
 let startTime = 0;
 let bytesLoaded = 0;
-let speedTimer = null;       // ← restored
+let speedTimer = null;
 let isSyncing = false;
 let syncTimeout = null;
 let downloadAborted = false;
@@ -459,17 +766,17 @@ let viewerCount = 1;
 let activeChunk = 0;
 let simTimer = null;
 
-const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB
+const CHUNK_SIZE = 1 * 1024 * 1024;
 
+// Firebase refs
 let roomRef = null;
-let presRef = null;
 let unsubscribe = null;
 
 // ================================================================
 // NAVIGATION
 // ================================================================
 function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 function goHome(){ showScreen('screenHome') }
@@ -477,9 +784,11 @@ function goCreate(){ showScreen('screenCreate') }
 function goJoin(){ showScreen('screenJoin') }
 
 // ================================================================
-// ROOM
+// ROOM LOGIC
 // ================================================================
-function genCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
+function genCode(){
+  return Math.floor(100000 + Math.random()*900000).toString();
+}
 
 function waitFirebase(cb){
   if(window._firebaseReady){ cb(); return; }
@@ -490,17 +799,17 @@ function createRoom(){
   const url = document.getElementById('createUrl').value.trim();
   const name = document.getElementById('createName').value.trim() || 'Host';
   if(!url){ log('ভিডিও লিংক দাও!','err'); return; }
+
   roomCode = genCode();
   isHost = true;
   myName = name;
   currentUrl = url;
+
   setupPlayerScreen();
-  waitFirebase(() => {
+  waitFirebase(()=>{
     connectFirebase(roomCode);
-    const urlRef = window._fbRef(window._fbDb, `rooms/${roomCode}/videoUrl`);
-    window._fbSet(urlRef, url);
-    loadVideoUrl(url);
-    log(`Room তৈরি: ${roomCode}`,'ok');
+    initRoom(url);
+    log(`Room তৈরি হলো: ${roomCode}`,'ok');
     log(`Host: ${name}`,'inf');
   });
 }
@@ -509,11 +818,13 @@ function joinRoom(){
   const code = document.getElementById('joinCode').value.trim();
   const name = document.getElementById('joinName').value.trim() || 'Viewer';
   if(code.length !== 6){ log('৬ সংখ্যার কোড দাও','err'); return; }
+
   roomCode = code;
   isHost = false;
   myName = name;
+
   setupPlayerScreen();
-  waitFirebase(() => {
+  waitFirebase(()=>{
     connectFirebase(roomCode);
     log(`Room এ যোগ দিচ্ছি: ${roomCode}`,'inf');
     log(`নাম: ${name}`,'inf');
@@ -524,9 +835,14 @@ function setupPlayerScreen(){
   showScreen('screenPlayer');
   document.getElementById('roomCodeDisplay').textContent = roomCode;
   document.getElementById('statRole').textContent = isHost ? 'Host 👑' : 'Viewer 👀';
+
+  // Host only controls
   document.getElementById('urlBar').style.display = isHost ? 'flex' : 'none';
   document.getElementById('btnDl').disabled = !isHost;
-  if(isHost && currentUrl) document.getElementById('videoUrl').value = currentUrl;
+
+  if(isHost && currentUrl){
+    document.getElementById('videoUrl').value = currentUrl;
+  }
 }
 
 // ================================================================
@@ -537,41 +853,39 @@ function connectFirebase(code){
 
   roomRef = window._fbRef(window._fbDb, `rooms/${code}`);
 
-  // Presence
-  presRef = window._fbRef(window._fbDb, `rooms/${code}/viewers/${sanitizeKey(myName)}`);
+  // Write viewer presence
+  const presRef = window._fbRef(window._fbDb, `rooms/${code}/viewers/${myName}`);
   window._fbSet(presRef, { name: myName, joinedAt: Date.now() });
 
+  // Listen for changes
   unsubscribe = window._fbOnValue(roomRef, snap => {
     const data = snap.val();
     if(!data) return;
 
-    // Viewer count
+    // Update viewer count
     if(data.viewers){
       viewerCount = Object.keys(data.viewers).length;
       document.getElementById('viewerCount').textContent = `${viewerCount} জন দেখছে`;
     }
 
-    // Viewer: get video URL from host
+    // Viewer: receive video URL from host
     if(!isHost && data.videoUrl && data.videoUrl !== currentUrl){
       currentUrl = data.videoUrl;
-      log('Host থেকে লিংক পেলাম, লোড করছি...','inf');
+      log(`Host ভিডিও লোড করছে...`,'inf');
       loadVideoUrl(currentUrl);
     }
 
-    // Viewer: sync playback
+    // Viewer: sync playback state
     if(!isHost && data.playback){
       syncFromFirebase(data.playback);
     }
 
+    // Update connected status
     setConnected(true);
   });
 
   setConnected(true);
-  log('Firebase সংযুক্ত ✓','ok');
-}
-
-function sanitizeKey(name){
-  return (name || 'user').replace(/[.#$\[\]\/]/g, '_').substring(0, 50);
+  log('Firebase এ সংযুক্ত','ok');
 }
 
 function setConnected(ok){
@@ -589,25 +903,28 @@ function syncFromFirebase(pb){
   if(isSyncing) return;
   const video = document.getElementById('mainVideo');
   if(!video || video.readyState < 2) return;
+
   const diff = Math.abs(video.currentTime - pb.time);
+
   if(pb.state === 'paused' && !video.paused){
     isSyncing = true;
     if(diff > 0.5) video.currentTime = pb.time;
     video.pause();
     showSyncToast('⏸ Host pause করেছে');
-    setTimeout(() => { isSyncing = false }, 600);
+    setTimeout(()=>{ isSyncing=false }, 500);
   } else if(pb.state === 'playing' && video.paused){
     isSyncing = true;
-    if(diff > 1.5) video.currentTime = pb.time;
-    video.play().catch(() => {});
+    if(diff > 1) video.currentTime = pb.time;
+    video.play().catch(()=>{});
     showSyncToast('▶ Host play করেছে');
-    setTimeout(() => { isSyncing = false }, 600);
-  } else if(pb.state === 'seek' && diff > 1.5){
+    setTimeout(()=>{ isSyncing=false }, 500);
+  } else if(pb.state === 'seek' && diff > 1){
     isSyncing = true;
     video.currentTime = pb.time;
     showSyncToast(`⏩ ${pb.time.toFixed(0)}s এ গেছে`);
-    setTimeout(() => { isSyncing = false }, 1000);
+    setTimeout(()=>{ isSyncing=false }, 800);
   }
+
   document.getElementById('statSync').textContent = pb.state === 'playing' ? '▶ চলছে' : '⏸ থামা';
 }
 
@@ -616,288 +933,221 @@ function showSyncToast(msg){
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(syncTimeout);
-  syncTimeout = setTimeout(() => t.classList.remove('show'), 2500);
+  syncTimeout = setTimeout(()=> t.classList.remove('show'), 2500);
 }
 
 // ================================================================
-// VIDEO — FIX: showVideo() একটাই entry point
+// VIDEO LOADING
 // ================================================================
-function showVideo(){
-  document.getElementById('playerEmpty').style.display = 'none';
-  const video = document.getElementById('mainVideo');
-  video.style.display = 'block';
-}
-
 function loadVideo(){
   const url = document.getElementById('videoUrl').value.trim();
   if(!url){ log('লিংক দাও','err'); return; }
   currentUrl = url;
+
+  // Push URL to Firebase for viewers
   if(isHost && roomRef){
     const urlRef = window._fbRef(window._fbDb, `rooms/${roomCode}/videoUrl`);
     window._fbSet(urlRef, url);
   }
+
   loadVideoUrl(url);
 }
 
 function loadVideoUrl(url){
-  if(url.includes('youtube.com') || url.includes('youtu.be')){ loadYT(url); return; }
-  if(url.endsWith('.m3u8') || url.includes('m3u8')){ loadHLS(url); return; }
+  if(url.includes('youtube.com') || url.includes('youtu.be')){
+    loadYT(url); return;
+  }
+  if(url.endsWith('.m3u8') || url.includes('m3u8')){
+    loadHLS(url); return;
+  }
   loadMP4(url);
 }
 
-// ----------------------------------------------------------------
-// MP4 — FIX: সরাসরি src set + tryMediaSource শুধু range support থাকলে
-// ----------------------------------------------------------------
 async function loadMP4(url){
   log('MP4 লিংক বিশ্লেষণ করছি...','inf');
-  if(hls){ hls.destroy(); hls = null; }
-
-  showVideo(); // ← এটাই main fix — আগে display করো
-  document.getElementById('btnDl').disabled = false;
-  document.getElementById('statMode').textContent = 'MP4';
-
+  document.getElementById('playerEmpty').style.display = 'none';
   const video = document.getElementById('mainVideo');
+  video.style.display = 'block';
+  document.getElementById('btnDl').disabled = !isHost;
 
-  // HEAD request — size ও range support চেক
-  let canRange = false;
+  // Viewer: সরাসরি load করো, HEAD/MediaSource skip
+  if(!isHost){
+    video.src = url;
+    video.load();
+    video.play().catch(()=>{});
+    attachVideoEvents(video);
+    video.addEventListener('canplay', ()=> loadAudioTracks(), {once:true});
+    log('ভিডিও লোড হচ্ছে...','ok');
+    fakeChunks(24);
+    return;
+  }
+
+  // Host: Try HEAD for size
   try{
-    const r = await fetch(url, { method:'HEAD', mode:'cors' });
+    const r = await fetch(url, {method:'HEAD'});
     const cl = r.headers.get('content-length');
     const ar = r.headers.get('accept-ranges');
     if(cl){
       totalSize = parseInt(cl);
-      totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+      totalChunks = Math.ceil(totalSize/CHUNK_SIZE);
       document.getElementById('statSize').textContent = fmtBytes(totalSize);
       document.getElementById('statTotal').textContent = totalChunks;
       chunkStates = new Array(totalChunks).fill('empty');
       renderChunks();
       log(`ফাইল: ${fmtBytes(totalSize)} | ${totalChunks} চাংক`,'ok');
-      canRange = (ar === 'bytes');
-    }
-  } catch(e){
-    log('HEAD block — CORS সমস্যা, সরাসরি লোড চেষ্টা','wrn');
-  }
 
-  // Range + MediaSource সাপোর্ট থাকলে chunked streaming
-  if(canRange && window.MediaSource && totalSize > 0){
-    const mime = getMime(url);
-    if(MediaSource.isTypeSupported(mime)){
-      tryMediaSource(url, mime);
-      return;
+      if(ar === 'bytes' && window.MediaSource){
+        tryMediaSource(url, r.headers.get('content-type')||'video/mp4');
+        return;
+      }
     }
-  }
+  }catch(e){}
 
-  // Fallback: সরাসরি src — সবচেয়ে নির্ভরযোগ্য
-  log('সরাসরি স্ট্রিম লোড হচ্ছে...','ok');
+  // Fallback: direct src
+  document.getElementById('playerEmpty').style.display = 'none';
+  video.style.display = 'block';
   video.src = url;
   video.load();
-
-  video.onloadedmetadata = () => {
-    log(`মেটাডেটা ✓ — ${video.videoWidth}×${video.videoHeight}`,'ok');
-    loadAudioTracks();
-    video.play().catch(() => log('Autoplay block — play বাটনে ক্লিক করো','wrn'));
-  };
-  video.onerror = () => {
-    const codes = {1:'Aborted',2:'Network',3:'Decode',4:'Format'};
-    log(`ভিডিও এরর: ${codes[video.error?.code] || 'Unknown'}`,'err');
-  };
-
+  video.play().catch(()=>{});
   attachVideoEvents(video);
-
-  if(totalChunks > 0){
-    startTime = Date.now(); bytesLoaded = 0;
-    speedTimer = setInterval(updateSpeed, 1000);
-    simulateChunkProgress(video);
-  } else {
-    fakeChunks(24);
-  }
+  video.addEventListener('canplay', ()=> loadAudioTracks(), {once:true});
+  log('সরাসরি স্ট্রিম শুরু হচ্ছে','ok');
+  fakeChunks(24);
 }
 
-// ----------------------------------------------------------------
-// tryMediaSource — restored from original, with video display fix
-// ----------------------------------------------------------------
-async function tryMediaSource(url, mime){
+function loadHLS(url){
+  log('HLS স্ট্রিম লোড হচ্ছে...','inf');
+  document.getElementById('playerEmpty').style.display = 'none';
+  const video = document.getElementById('mainVideo');
+  video.style.display = 'block';
+
+  if(hls){ hls.destroy(); hls = null; }
+
+  if(window.Hls && Hls.isSupported()){
+    hls = new Hls({ enableWorker:true });
+    hls.loadSource(url);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, ()=>{
+      log('HLS manifest লোড হয়েছে','ok');
+      video.play().catch(()=>{});
+      loadAudioTracks();
+    });
+    hls.on(Hls.Events.FRAG_LOADED, (e,d)=>{
+      const sn = d.frag.sn;
+      if(sn >= 0 && sn < chunkStates.length) setChunk(sn,'loaded');
+    });
+    const segs = 32;
+    totalChunks = segs;
+    chunkStates = new Array(segs).fill('empty');
+    renderChunks();
+    document.getElementById('statTotal').textContent = 'HLS';
+  } else if(video.canPlayType('application/vnd.apple.mpegurl')){
+    video.src = url;
+    video.play().catch(()=>{});
+  }
+  attachVideoEvents(video);
+}
+
+function loadYT(url){
+  let vid = '';
+  try{ vid = new URL(url).searchParams.get('v') || new URL(url).pathname.split('/').pop(); }catch(e){}
+  if(!vid){ log('YouTube ID পাওয়া গেলো না','err'); return; }
+  document.getElementById('playerEmpty').style.display = 'none';
+  document.getElementById('mainVideo').style.display = 'none';
+  const box = document.getElementById('playerBox');
+  document.querySelectorAll('#playerBox iframe').forEach(e=>e.remove());
+  const f = document.createElement('iframe');
+  f.width='100%';f.height='100%';f.style.border='none';
+  f.src=`https://www.youtube.com/embed/${vid}?autoplay=1&enablejsapi=1`;
+  f.allow='autoplay;encrypted-media;fullscreen';
+  box.appendChild(f);
+  log('YouTube embed হয়েছে','ok');
+  log('নোট: YouTube এ sync limited','wrn');
+  fakeChunks(28);
+}
+
+async function tryMediaSource(url, ct){
+  const mime = getMime(ct);
+  if(!MediaSource.isTypeSupported(mime)){
+    log('MediaSource সাপোর্ট নেই — সরাসরি লোড','wrn');
+    const video = document.getElementById('mainVideo');
+    document.getElementById('playerEmpty').style.display = 'none';
+    video.style.display = 'block';
+    video.src = url; video.load(); video.play().catch(()=>{});
+    attachVideoEvents(video);
+    // audio tracks after canplay
+    video.addEventListener('canplay', ()=> loadAudioTracks(), {once:true});
+    return;
+  }
   const ms = new MediaSource();
   const video = document.getElementById('mainVideo');
-  // showVideo() already called in loadMP4, but ensure here too
-  showVideo();
+  document.getElementById('playerEmpty').style.display = 'none';
+  video.style.display = 'block';
   video.src = URL.createObjectURL(ms);
-
   startTime = Date.now(); bytesLoaded = 0;
   speedTimer = setInterval(updateSpeed, 1000);
   attachVideoEvents(video);
 
+  // Play as soon as enough data is buffered
   let playStarted = false;
-  video.addEventListener('canplay', () => {
+  video.addEventListener('canplay', ()=>{
     if(!playStarted){
       playStarted = true;
-      video.play().catch(() => {});
+      video.play().catch(()=>{});
       log('ভিডিও চালু হয়েছে ▶','ok');
-      loadAudioTracks();
     }
+    loadAudioTracks();
   }, {once:true});
 
-  ms.addEventListener('sourceopen', async () => {
+  ms.addEventListener('sourceopen', async ()=>{
     let sb;
-    try{
-      sb = ms.addSourceBuffer(mime);
-      sb.mode = 'sequence';
-    } catch(e){
-      log('SourceBuffer ব্যর্থ — সরাসরি লোড','wrn');
-      video.src = url; video.load();
-      video.play().catch(() => {});
+    try{ sb = ms.addSourceBuffer(mime); sb.mode='sequence'; }
+    catch(e){
+      log('SourceBuffer এরর — সরাসরি লোড','wrn');
+      document.getElementById('playerEmpty').style.display = 'none';
+      video.style.display = 'block';
+      video.src=url; video.load(); video.play().catch(()=>{});
       return;
     }
 
-    for(let i = 0; i < totalChunks; i++){
-      const s = i * CHUNK_SIZE;
-      const e = Math.min(s + CHUNK_SIZE - 1, totalSize - 1);
-      setChunk(i, 'loading');
+    for(let i=0;i<totalChunks;i++){
+      const s=i*CHUNK_SIZE, e=Math.min(s+CHUNK_SIZE-1,totalSize-1);
+      setChunk(i,'loading');
       try{
-        const r = await fetch(url, { headers:{ Range:`bytes=${s}-${e}` } });
+        const r = await fetch(url,{headers:{Range:`bytes=${s}-${e}`}});
         const buf = await r.arrayBuffer();
         bytesLoaded += buf.byteLength;
         await appendBuf(sb, buf);
-        setChunk(i, 'loaded');
+        setChunk(i,'loaded');
         loadedChunks++;
         document.getElementById('statLoaded').textContent = loadedChunks;
         log(`✓ চাংক #${i+1} (${fmtBytes(buf.byteLength)})`,'ok');
-        if(i === 0 && !playStarted){
+        // Try play after first chunk
+        if(i===0 && !playStarted){
           playStarted = true;
-          video.play().catch(() => {});
+          video.play().catch(()=>{});
         }
-      } catch(err){
-        setChunk(i, 'empty');
-        log(`চাংক #${i+1} ব্যর্থ`,'err');
+      }catch(err){
+        setChunk(i,'empty');
+        log(`চাংক #${i+1} ফেইলড`,'err');
       }
     }
-
-    if(ms.readyState === 'open') ms.endOfStream();
+    if(ms.readyState==='open') ms.endOfStream();
     clearInterval(speedTimer);
-    log('স্ট্রিম সম্পূর্ণ ✓','ok');
+    log('স্ট্রিম সম্পূর্ণ!','ok');
   });
 }
 
-// ----------------------------------------------------------------
-// appendBuf — restored from original
-// ----------------------------------------------------------------
 function appendBuf(sb, data){
-  return new Promise(res => {
-    const doAppend = () => {
-      sb.addEventListener('updateend', res, {once:true});
-      try{ sb.appendBuffer(data); } catch(e){ res(); }
-    };
-    if(sb.updating){
-      sb.addEventListener('updateend', doAppend, {once:true});
-    } else {
-      doAppend();
-    }
+  return new Promise(res=>{
+    if(sb.updating){ sb.addEventListener('updateend',()=>{sb.appendBuffer(data); sb.addEventListener('updateend',res,{once:true})},{once:true}); return; }
+    sb.addEventListener('updateend',res,{once:true});
+    try{ sb.appendBuffer(data); }catch(e){ res(); }
   });
-}
-
-// chunk progress time দিয়ে track — direct src fallback এর জন্য
-function simulateChunkProgress(video){
-  if(!totalChunks) return;
-  video.addEventListener('timeupdate', function onTime(){
-    if(!video.duration) return;
-    const pct = video.currentTime / video.duration;
-    const ci = Math.floor(pct * totalChunks);
-    for(let i = 0; i < ci && i < totalChunks; i++){
-      if(chunkStates[i] !== 'loaded') setChunk(i,'loaded');
-    }
-    if(ci < totalChunks && chunkStates[ci] !== 'active') setChunk(ci,'active');
-    if(ci > 0 && chunkStates[ci-1] === 'active') setChunk(ci-1,'loaded');
-  });
-}
-
-// ----------------------------------------------------------------
-// HLS
-// ----------------------------------------------------------------
-function loadHLS(url){
-  log('HLS স্ট্রিম লোড হচ্ছে...','inf');
-  if(hls){ hls.destroy(); hls = null; }
-  showVideo();
-  document.getElementById('statMode').textContent = 'HLS';
-
-  const video = document.getElementById('mainVideo');
-
-  if(window.Hls && Hls.isSupported()){
-    hls = new Hls({ enableWorker:true, maxBufferLength:30 });
-    hls.loadSource(url);
-    hls.attachMedia(video);
-
-    hls.on(Hls.Events.MANIFEST_PARSED, (e, data) => {
-      log(`HLS manifest ✓ — ${data.levels.length} quality level`,'ok');
-      totalChunks = 30;
-      chunkStates = new Array(30).fill('empty');
-      renderChunks();
-      document.getElementById('statTotal').textContent = 'HLS';
-      loadAudioTracks();
-      video.play().catch(() => log('Autoplay block — play চাপো','wrn'));
-    });
-
-    hls.on(Hls.Events.FRAG_LOADED, (e, data) => {
-      const sn = data.frag.sn;
-      if(typeof sn === 'number' && sn >= 0){
-        const idx = sn % 30;
-        if(chunkStates[idx] !== 'active') setChunk(idx,'active');
-        setTimeout(() => setChunk(idx,'loaded'), 400);
-        loadedChunks++;
-        document.getElementById('statLoaded').textContent = loadedChunks;
-      }
-    });
-
-    hls.on(Hls.Events.ERROR, (e, data) => {
-      if(data.fatal){
-        log(`HLS Fatal: ${data.type}`,'err');
-        if(data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
-        else if(data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
-      }
-    });
-
-    attachVideoEvents(video);
-
-  } else if(video.canPlayType('application/vnd.apple.mpegurl')){
-    video.src = url;
-    video.load();
-    video.play().catch(() => {});
-    attachVideoEvents(video);
-    video.addEventListener('loadedmetadata', () => loadAudioTracks(), {once:true});
-    log('Safari native HLS','ok');
-  } else {
-    log('HLS সাপোর্ট নেই এই browser এ','err');
-  }
-}
-
-// ----------------------------------------------------------------
-// YouTube
-// ----------------------------------------------------------------
-function loadYT(url){
-  let vid = '';
-  try{
-    const u = new URL(url);
-    vid = u.searchParams.get('v') || u.pathname.split('/').pop();
-  } catch(e){}
-  if(!vid){ log('YouTube ID পাওয়া গেলো না','err'); return; }
-
-  document.getElementById('playerEmpty').style.display = 'none';
-  document.getElementById('mainVideo').style.display = 'none';
-  document.querySelectorAll('#playerBox iframe').forEach(e => e.remove());
-
-  const box = document.getElementById('playerBox');
-  const f = document.createElement('iframe');
-  f.style.cssText = 'width:100%;height:100%;border:none;position:absolute;top:0;left:0;';
-  f.src = `https://www.youtube.com/embed/${vid}?autoplay=1&enablejsapi=1`;
-  f.allow = 'autoplay;encrypted-media;fullscreen';
-  box.appendChild(f);
-  document.getElementById('statMode').textContent = 'YouTube';
-  log('YouTube embed ✓','ok');
-  log('⚠ YouTube এ sync limited','wrn');
-  fakeChunks(28);
 }
 
 // ================================================================
-// AUDIO TRACKS — FIX: HLS multi-track সঠিকভাবে
+// AUDIO TRACKS
 // ================================================================
 function loadAudioTracks(){
   const video = document.getElementById('mainVideo');
@@ -905,112 +1155,73 @@ function loadAudioTracks(){
   const wrap = document.getElementById('trackSel');
   sel.innerHTML = '';
 
-  // HLS.js audio tracks — সবচেয়ে নির্ভরযোগ্য
-  if(hls){
-    const tracks = hls.audioTracks;
-    if(tracks && tracks.length > 1){
-      tracks.forEach((t, i) => {
-        const o = document.createElement('option');
-        o.value = i;
-        o.textContent = getLanguageName(t.lang) || t.name || `Track ${i+1}`;
-        if(i === hls.audioTrack) o.selected = true;
-        sel.appendChild(o);
-      });
-      wrap.style.display = 'flex';
-      log(`🌐 ${tracks.length}টি audio track পাওয়া গেছে`,'ok');
-      return;
-    } else if(tracks && tracks.length === 1){
-      log(`HLS audio: ${getLanguageName(tracks[0].lang) || tracks[0].name || 'Default'}`,'inf');
-      return;
-    }
-  }
-
-  // Native audioTracks API — Firefox এ কাজ করে
-  if(video.audioTracks && video.audioTracks.length > 1){
-    Array.from(video.audioTracks).forEach((t, i) => {
+  // HLS audio tracks
+  if(hls && hls.audioTracks && hls.audioTracks.length > 0){
+    hls.audioTracks.forEach((t,i)=>{
       const o = document.createElement('option');
       o.value = i;
-      o.textContent = getLanguageName(t.language) || t.label || `Track ${i+1}`;
-      if(t.enabled) o.selected = true;
+      o.textContent = t.name || t.lang || `Track ${i+1}`;
       sel.appendChild(o);
     });
     wrap.style.display = 'flex';
-    log(`🌐 ${video.audioTracks.length}টি audio track (native)`,'ok');
+    sel.disabled = false;
+    if(hls.audioTracks.length > 1){
+      log(`🌐 ${hls.audioTracks.length}টি audio track পাওয়া গেছে`,'ok');
+    } else {
+      log('১টি audio track পাওয়া গেছে','inf');
+      sel.disabled = true;
+    }
     return;
   }
 
-  // Chrome এ MP4 multi-audio কাজ করে না — honest message
-  if(hls){
-    log('HLS: ১টি audio track — ভাষা পরিবর্তন নেই','inf');
+  // Native audio tracks (MP4 multi-audio)
+  if(video.audioTracks && video.audioTracks.length > 0){
+    Array.from(video.audioTracks).forEach((t,i)=>{
+      const o = document.createElement('option');
+      o.value = i;
+      o.textContent = t.label || t.language || `Track ${i+1}`;
+      sel.appendChild(o);
+    });
+    if(video.audioTracks.length > 1){
+      wrap.style.display = 'flex';
+      log(`🌐 ${video.audioTracks.length}টি audio track পাওয়া গেছে`,'ok');
+    } else {
+      log('১টি audio track — ভাষা বদলানো যাবে না','wrn');
+    }
   } else {
-    log('Audio track: multi-audio চাইলে .m3u8 লিংক ব্যবহার করো','wrn');
+    wrap.style.display = 'none';
   }
 }
 
 function switchAudioTrack(idx){
+  const video = document.getElementById('mainVideo');
   idx = parseInt(idx);
+
   if(hls && hls.audioTracks){
     hls.audioTrack = idx;
-    const t = hls.audioTracks[idx];
-    const name = getLanguageName(t?.lang) || t?.name || `Track ${idx+1}`;
-    log(`🌐 Audio: ${name}`,'ok');
-    showSyncToast(`🌐 ${name}`);
+    log(`Audio track পরিবর্তন: ${hls.audioTracks[idx]?.name||idx}`,'ok');
     return;
   }
-  const video = document.getElementById('mainVideo');
   if(video.audioTracks){
-    Array.from(video.audioTracks).forEach((t, i) => { t.enabled = (i === idx); });
+    Array.from(video.audioTracks).forEach((t,i)=>{ t.enabled = (i===idx); });
     log(`Audio track ${idx+1} সক্রিয়`,'ok');
   }
 }
 
-// Language code → নাম
-function getLanguageName(lang){
-  if(!lang) return '';
-  const map = {
-    'hin':'হিন্দি','hi':'হিন্দি','ben':'বাংলা','bn':'বাংলা',
-    'eng':'English','en':'English','tam':'তামিল','ta':'তামিল',
-    'tel':'তেলুগু','te':'তেলুগু','mal':'মালয়ালম','ml':'মালয়ালম',
-    'kan':'কন্নড়','kn':'কন্নড়','mar':'মারাঠি','mr':'মারাঠি',
-    'pun':'পাঞ্জাবি','pa':'পাঞ্জাবি','urd':'উর্দু','ur':'উর্দু',
-    'jpn':'জাপানি','ja':'জাপানি','kor':'কোরিয়ান','ko':'কোরিয়ান',
-    'zho':'চাইনিজ','zh':'চাইনিজ','fra':'ফরাসি','fr':'ফরাসি',
-    'spa':'স্প্যানিশ','es':'স্প্যানিশ','deu':'জার্মান','de':'জার্মান',
-    'ara':'আরবি','ar':'আরবি','rus':'রাশিয়ান','ru':'রাশিয়ান',
-  };
-  return map[lang.toLowerCase()] || lang.toUpperCase();
-}
-
 // ================================================================
-// getMime — restored
-// ================================================================
-function getMime(url){
-  if(url.includes('webm')) return 'video/webm;codecs="vp8,vorbis"';
-  return 'video/mp4;codecs="avc1.42E01E,mp4a.40.2"';
-}
-
-// ================================================================
-// VIDEO EVENTS → HOST → FIREBASE
+// VIDEO EVENTS → HOST PUSHES TO FIREBASE
 // ================================================================
 function attachVideoEvents(video){
-  video.addEventListener('play', () => {
-    if(isHost && !isSyncing){
-      pushPlayback('playing', video.currentTime);
-      showSyncToast('▶ সবাইকে play করছে');
-    }
+  video.addEventListener('play', ()=>{
+    if(isHost && !isSyncing){ pushPlayback('playing', video.currentTime); showSyncToast('▶ সবাইকে play করছে'); }
   });
-  video.addEventListener('pause', () => {
-    if(isHost && !isSyncing){
-      pushPlayback('paused', video.currentTime);
-      showSyncToast('⏸ সবাইকে pause করছে');
-    }
+  video.addEventListener('pause', ()=>{
+    if(isHost && !isSyncing){ pushPlayback('paused', video.currentTime); showSyncToast('⏸ সবাইকে pause করছে'); }
   });
-  video.addEventListener('seeked', () => {
-    if(isHost && !isSyncing) pushPlayback('seek', video.currentTime);
+  video.addEventListener('seeked', ()=>{
+    if(isHost && !isSyncing){ pushPlayback('seek', video.currentTime); }
   });
   video.addEventListener('timeupdate', trackActiveChunk);
-  video.addEventListener('waiting', () => log('বাফারিং...','wrn'));
-  video.addEventListener('playing', () => log('ভিডিও চলছে ▶','ok'));
 }
 
 function trackActiveChunk(){
@@ -1019,9 +1230,9 @@ function trackActiveChunk(){
   const pct = video.currentTime / video.duration;
   const ci = Math.floor(pct * totalChunks);
   if(ci !== activeChunk && ci < totalChunks){
-    if(chunkStates[activeChunk] === 'active') setChunk(activeChunk,'loaded');
+    if(chunkStates[activeChunk]==='active') setChunk(activeChunk,'loaded');
     activeChunk = ci;
-    if(chunkStates[ci] === 'loaded') setChunk(ci,'active');
+    if(chunkStates[ci]==='loaded') setChunk(ci,'active');
   }
 }
 
@@ -1031,7 +1242,7 @@ function trackActiveChunk(){
 function renderChunks(){
   const g = document.getElementById('chunkGrid');
   g.innerHTML = '';
-  chunkStates.forEach((_, i) => {
+  chunkStates.forEach((_,i)=>{
     const d = document.createElement('div');
     d.className = 'ck';
     d.id = `ck${i}`;
@@ -1042,11 +1253,11 @@ function renderChunks(){
 }
 
 function setChunk(i, state){
-  if(i < 0 || i >= chunkStates.length) return;
+  if(i<0||i>=chunkStates.length) return;
   chunkStates[i] = state;
   const el = document.getElementById(`ck${i}`);
   if(el) el.className = 'ck ' + (state==='loaded'?'loaded':state==='active'?'active':state==='loading'?'loading':'');
-  const loaded = chunkStates.filter(s => s==='loaded'||s==='active').length;
+  const loaded = chunkStates.filter(s=>s==='loaded'||s==='active').length;
   document.getElementById('chunkInfo').textContent = `${loaded} / ${totalChunks}`;
   document.getElementById('statLoaded').textContent = loaded;
 }
@@ -1056,11 +1267,11 @@ function fakeChunks(n){
   chunkStates = new Array(n).fill('empty');
   loadedChunks = 0;
   renderChunks();
-  let i = 0;
+  let i=0;
   clearInterval(simTimer);
-  simTimer = setInterval(() => {
-    if(i >= n){ clearInterval(simTimer); return; }
-    if(i > 0) setChunk(i-1,'loaded');
+  simTimer = setInterval(()=>{
+    if(i>=n){ clearInterval(simTimer); return; }
+    if(i>0) setChunk(i-1,'loaded');
     setChunk(i,'active');
     i++;
   }, 500);
@@ -1075,33 +1286,31 @@ async function startDownload(){
   document.getElementById('dlBarWrap').style.display = 'block';
 
   if(totalSize > 0 && totalChunks > 0){
+    // Chunk download
     log('চাংক ডাউনলোড শুরু হচ্ছে...','inf');
     const bufs = [];
-    for(let i = 0; i < totalChunks; i++){
+    for(let i=0;i<totalChunks;i++){
       if(downloadAborted) break;
-      const s = i * CHUNK_SIZE;
-      const e = Math.min(s + CHUNK_SIZE - 1, totalSize - 1);
+      const s=i*CHUNK_SIZE, e=Math.min(s+CHUNK_SIZE-1,totalSize-1);
       document.getElementById('dlInfoText').textContent = `চাংক ${i+1}/${totalChunks} নামছে...`;
       document.getElementById('dlFill').style.width = ((i/totalChunks)*100)+'%';
       try{
-        const r = await fetch(currentUrl, { headers:{ Range:`bytes=${s}-${e}` } });
+        const r = await fetch(currentUrl,{headers:{Range:`bytes=${s}-${e}`}});
         bufs.push(await r.arrayBuffer());
-      } catch(err){
-        log(`চাংক #${i+1} ফেইলড`,'err');
-        break;
-      }
+      }catch(e){ log(`চাংক #${i+1} ফেইলড`,'err'); break; }
     }
     document.getElementById('dlFill').style.width = '100%';
     document.getElementById('dlInfoText').textContent = 'মার্জ করছি...';
-    setTimeout(() => {
-      const blob = new Blob(bufs, {type:'video/mp4'});
+    setTimeout(()=>{
+      const blob = new Blob(bufs,{type:'video/mp4'});
       triggerDl(blob);
       document.getElementById('dlBarWrap').style.display = 'none';
-    }, 400);
+    },400);
   } else {
+    // Direct download
     const a = document.createElement('a');
-    a.href = currentUrl; a.download = ''; a.target = '_blank'; a.click();
-    log('সরাসরি ডাউনলোড শুরু','ok');
+    a.href = currentUrl; a.download = ''; a.target='_blank'; a.click();
+    log('সরাসরি ডাউনলোড শুরু হয়েছে','ok');
     document.getElementById('dlBarWrap').style.display = 'none';
   }
 }
@@ -1114,67 +1323,57 @@ function triggerDl(blob){
   log(`✓ ডাউনলোড: ${fmtBytes(blob.size)}`,'ok');
 }
 
-function cancelDownload(){
-  downloadAborted = true;
-  document.getElementById('dlBarWrap').style.display = 'none';
-  log('ডাউনলোড বাতিল','wrn');
-}
+function cancelDownload(){ downloadAborted=true; document.getElementById('dlBarWrap').style.display='none'; log('ডাউনলোড বাতিল','wrn'); }
 
 // ================================================================
-// UTILS — restored: fmtBytes, getMime (above), updateSpeed
+// UTILS
 // ================================================================
 function fmtBytes(b){
-  if(b < 1024) return b+'B';
-  if(b < 1048576) return (b/1024).toFixed(1)+'KB';
+  if(b<1024) return b+'B';
+  if(b<1048576) return (b/1024).toFixed(1)+'KB';
   return (b/1048576).toFixed(2)+'MB';
 }
 
+function getMime(ct){
+  if(ct.includes('webm')) return 'video/webm;codecs="vp8,vorbis"';
+  return 'video/mp4;codecs="avc1.42E01E,mp4a.40.2"';
+}
+
 function updateSpeed(){
-  const elapsed = (Date.now() - startTime) / 1000;
-  if(elapsed > 0 && bytesLoaded > 0){
-    document.getElementById('statSpeed').textContent = fmtBytes(bytesLoaded / elapsed)+'/s';
-  }
+  const elapsed = (Date.now()-startTime)/1000;
+  if(elapsed>0 && bytesLoaded>0) document.getElementById('statSpeed').textContent = fmtBytes(bytesLoaded/elapsed)+'/s';
 }
 
 function copyCode(){
-  navigator.clipboard.writeText(roomCode).then(() => showSyncToast('✓ কোড কপি হয়েছে!'));
+  navigator.clipboard.writeText(roomCode).then(()=>{
+    showSyncToast('✓ কোড কপি হয়েছে!');
+  });
 }
 
 function clearVideo(){
   const video = document.getElementById('mainVideo');
-  video.pause();
-  video.removeAttribute('src');
-  video.load();
-  video.style.display = 'none';
-  document.getElementById('playerEmpty').style.display = 'flex';
-  document.querySelectorAll('#playerBox iframe').forEach(e => e.remove());
-  if(hls){ hls.destroy(); hls = null; }
-  clearInterval(simTimer);
-  clearInterval(speedTimer);
-  totalSize=0; totalChunks=0; chunkStates=[]; loadedChunks=0; bytesLoaded=0; activeChunk=0;
-  document.getElementById('chunkGrid').innerHTML = '<div style="color:var(--muted);font-size:0.78rem;font-family:JetBrains Mono,monospace">ভিডিও লোড হলে দেখাবে...</div>';
-  document.getElementById('chunkInfo').textContent = '—';
-  document.getElementById('trackSel').style.display = 'none';
-  document.getElementById('audioTrackSel').innerHTML = '';
-  document.getElementById('statTotal').textContent = '—';
-  document.getElementById('statLoaded').textContent = '0';
-  document.getElementById('statSize').textContent = '—';
-  document.getElementById('statSpeed').textContent = '—';
-  document.getElementById('statMode').textContent = '—';
+  video.pause(); video.src=''; video.style.display='none';
+  document.getElementById('playerEmpty').style.display='block';
+  document.querySelectorAll('#playerBox iframe').forEach(e=>e.remove());
+  if(hls){ hls.destroy(); hls=null; }
+  clearInterval(simTimer); clearInterval(speedTimer);
+  totalSize=0; totalChunks=0; chunkStates=[]; loadedChunks=0; bytesLoaded=0;
+  document.getElementById('chunkGrid').innerHTML='<div style="color:var(--muted);font-size:0.78rem;font-family:JetBrains Mono,monospace">ভিডিও লোড হলে দেখাবে...</div>';
+  document.getElementById('chunkInfo').textContent='—';
+  document.getElementById('trackSel').style.display='none';
+  document.getElementById('statTotal').textContent='—';
+  document.getElementById('statLoaded').textContent='0';
+  document.getElementById('statSize').textContent='—';
+  document.getElementById('statSpeed').textContent='—';
   log('রিসেট হয়েছে','inf');
 }
 
 function leaveRoom(){
-  // FIX: Firebase থেকে presence delete করো
-  if(presRef && window._fbRemove) window._fbRemove(presRef);
-  if(roomRef) window._fbOff(roomRef);
-  if(hls){ hls.destroy(); hls = null; }
-  clearInterval(simTimer);
-  clearInterval(speedTimer);
+  if(unsubscribe){ window._fbOff(roomRef); }
+  if(hls){ hls.destroy(); }
+  clearInterval(simTimer); clearInterval(speedTimer);
   roomCode=''; isHost=false; currentUrl='';
-  roomRef=null; presRef=null;
   setConnected(false);
-  clearVideo();
   goHome();
   log('Room ছেড়ে দিয়েছো','wrn');
 }
@@ -1188,29 +1387,38 @@ function initRoom(url){
 }
 
 // ================================================================
-// INIT + EVENTS
+// LOG
 // ================================================================
-document.addEventListener('DOMContentLoaded', () => {
-  log('StreamBox চাংক ইঞ্জিন প্রস্তুত ✓','ok');
+function log(msg, type='inf'){
+  const list = document.getElementById('logList');
+  const now = new Date().toTimeString().slice(0,8);
+  const d = document.createElement('div');
+  d.className = 'le';
+  d.innerHTML = `<span class="lt">${now}</span><span class="lm ${type}">${msg}</span>`;
+  list.appendChild(d);
+  list.scrollTop = list.scrollHeight;
+}
+
+// ================================================================
+// INIT LOG
+// ================================================================
+document.addEventListener('DOMContentLoaded',()=>{
+  log('StreamBox চাংক ইঞ্জিন প্রস্তুত','ok');
   log('Firebase সংযোগের অপেক্ষায়...','inf');
-  document.addEventListener('firebaseReady', () => log('Firebase সংযুক্ত ✓','ok'), {once:true});
+  document.addEventListener('firebaseReady',()=> log('Firebase সংযুক্ত ✓','ok'), {once:true});
 });
 
-document.addEventListener('keydown', e => {
-  if(e.key === 'Enter'){
+// Enter key on join
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
     const s = document.querySelector('.screen.active');
-    if(s.id === 'screenCreate') createRoom();
-    else if(s.id === 'screenJoin') joinRoom();
-    else if(s.id === 'screenPlayer'){
+    if(s.id==='screenCreate') createRoom();
+    else if(s.id==='screenJoin') joinRoom();
+    else if(s.id==='screenPlayer'){
       const url = document.getElementById('videoUrl').value.trim();
       if(url) loadVideo();
     }
   }
-});
-
-// Page বন্ধ হলে presence সরাও
-window.addEventListener('beforeunload', () => {
-  if(presRef && window._fbRemove) window._fbRemove(presRef);
 });
 </script>
 </body>
