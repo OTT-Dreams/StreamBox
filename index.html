@@ -1046,15 +1046,6 @@ function directPlay(url){
   video.play().catch(()=>{});
   attachVideoEvents(video);
   video.addEventListener('canplay', ()=>{ log('✓ ভিডিও চালু হয়েছে ▶','ok'); loadAudioTracks(); }, {once:true});
-  video.addEventListener('error', ()=>{
-    const ec = video.error ? video.error.code : '?';
-    if(ec === 4){
-      log('✗ এই browser এ codec সাপোর্ট নেই (H.265/HEVC চলে না)','err');
-      log('💡 Chrome-এ MP4 H.264 অথবা Firefox-এ চেষ্টা করো','wrn');
-    } else {
-      log(`✗ ভিডিও লোড হয়নি (error ${ec}) — link চেক করো`,'err');
-    }
-  }, {once:true});
   log('সরাসরি স্ট্রিম শুরু হচ্ছে','ok');
   fakeChunks(24);
 }
