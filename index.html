@@ -667,11 +667,6 @@ header{
           </div>
           <video id="mainVideo" controls></video>
           <div class="sync-toast" id="syncToast"></div>
-          <!-- Autoplay blocked overlay -->
-          <div id="playOverlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.7);cursor:pointer;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:10;" onclick="dismissPlayOverlay()">
-            <div style="font-size:4rem;">▶</div>
-            <div style="font-size:1rem;color:#fff;font-family:'Outfit',sans-serif;">Click করো — Host এর সাথে sync হবে</div>
-          </div>
         </div>
 
         <!-- Controls -->
@@ -863,7 +858,7 @@ function connectFirebase(code){
   window._fbSet(presRef, { name: myName, joinedAt: Date.now() });
 
   // Listen for changes
-  unsubscribe = window._fbOnValue(roomRef, snap => {
+  unsubscribe = window._fbOnValue(roomRef, async snap => {
     const data = snap.val();
     if(!data) return;
 
@@ -876,6 +871,7 @@ function connectFirebase(code){
     // Viewer: receive video URL from host
     if(!isHost && data.videoUrl && data.videoUrl !== currentUrl){
       currentUrl = data.videoUrl;
+      document.getElementById('videoUrl').value = currentUrl;
       log(`Host ভিডিও লোড করছে...`,'inf');
       await loadVideoUrl(currentUrl);
     }
@@ -904,54 +900,23 @@ function pushPlayback(state, time){
   window._fbSet(pbRef, { state, time, ts: Date.now() });
 }
 
-// Host প্রতি ৩ সেকেন্ডে current time Firebase-এ push করে
-// যাতে নতুন viewer join করলে সঠিক position থেকে শুরু হয়
-let heartbeatTimer = null;
-function startHeartbeat(){
-  clearInterval(heartbeatTimer);
-  heartbeatTimer = setInterval(()=>{
-    if(!isHost || !roomRef) return;
-    const video = document.getElementById('mainVideo');
-    if(!video || video.readyState < 1) return;
-    const state = video.paused ? 'paused' : 'playing';
-    pushPlayback(state, video.currentTime);
-  }, 3000);
-}
-
 function syncFromFirebase(pb){
   if(isSyncing) return;
   const video = document.getElementById('mainVideo');
-  if(!video) return;
+  if(!video || video.readyState < 2) return;
 
-  // Video এখনো ready না হলে ready হওয়ার পরে sync করো
-  if(video.readyState < 2){
-    const onReady = ()=>{
-      video.removeEventListener('canplay', onReady);
-      doSync(video, pb);
-    };
-    video.addEventListener('canplay', onReady);
-    return;
-  }
-  doSync(video, pb);
-}
-
-function doSync(video, pb){
-  if(isSyncing) return;
   const diff = Math.abs(video.currentTime - pb.time);
 
-  if(pb.state === 'paused'){
+  if(pb.state === 'paused' && !video.paused){
     isSyncing = true;
     if(diff > 0.5) video.currentTime = pb.time;
     video.pause();
     showSyncToast('⏸ Host pause করেছে');
     setTimeout(()=>{ isSyncing=false }, 500);
-  } else if(pb.state === 'playing'){
+  } else if(pb.state === 'playing' && video.paused){
     isSyncing = true;
-    if(diff > 1.5) video.currentTime = pb.time;
-    video.play().catch(()=>{
-      // Desktop autoplay policy block — overlay দেখাও
-      showPlayOverlay();
-    });
+    if(diff > 1) video.currentTime = pb.time;
+    video.play().catch(()=>{});
     showSyncToast('▶ Host play করেছে');
     setTimeout(()=>{ isSyncing=false }, 500);
   } else if(pb.state === 'seek' && diff > 1){
@@ -962,32 +927,6 @@ function doSync(video, pb){
   }
 
   document.getElementById('statSync').textContent = pb.state === 'playing' ? '▶ চলছে' : '⏸ থামা';
-}
-
-function showPlayOverlay(){
-  const o = document.getElementById('playOverlay');
-  if(o) o.style.display = 'flex';
-}
-
-function dismissPlayOverlay(){
-  const o = document.getElementById('playOverlay');
-  if(o) o.style.display = 'none';
-  const video = document.getElementById('mainVideo');
-  if(!video) return;
-  // Firebase থেকে latest time নিয়ে sync করো
-  if(window._fbDb && roomCode){
-    const pbRef = window._fbRef(window._fbDb, `rooms/${roomCode}/playback`);
-    window._fbOnValue(pbRef, snap=>{
-      window._fbOff(pbRef);
-      const pb = snap.val();
-      if(pb){
-        if(Math.abs(video.currentTime - pb.time) > 1) video.currentTime = pb.time;
-      }
-      video.play().catch(()=>{});
-    });
-  } else {
-    video.play().catch(()=>{});
-  }
 }
 
 function showSyncToast(msg){
@@ -1015,82 +954,28 @@ function loadVideo(){
   loadVideoUrl(url);
 }
 
-async function loadVideoUrl(url){
+function loadVideoUrl(url){
   if(url.includes('youtube.com') || url.includes('youtu.be')){
     loadYT(url); return;
   }
   if(url.endsWith('.m3u8') || url.includes('m3u8')){
     loadHLS(url); return;
   }
-
-  // URL দেখে সিদ্ধান্ত নেওয়ার আগে Content-Type চেক করো
-  // কারণ অনেক proxy/worker .mkv URL দিলেও M3U8 return করে
-  try{
-    const r = await fetch(url, {method:'HEAD'});
-    const ct = (r.headers.get('content-type') || '').toLowerCase();
-    log(`Content-Type: ${ct}`,'inf');
-
-    if(ct.includes('mpegurl') || ct.includes('x-m3u8') || ct.includes('vnd.apple')){
-      log('HLS stream detect হয়েছে (proxy/worker)','ok');
-      loadHLS(url); return;
-    }
-    if(ct.includes('webm')){
-      loadDirect(url,'WebM'); return;
-    }
-  }catch(e){
-    // HEAD fail হলে URL দেখে guess করো
-    log('HEAD চেক করতে পারিনি — URL দেখে চেষ্টা করছি','wrn');
-  }
-
-  if(url.endsWith('.mkv') || url.includes('.mkv')){
-    loadDirect(url, 'MKV'); return;
-  }
-  if(url.endsWith('.webm') || url.includes('.webm')){
-    loadDirect(url, 'WebM'); return;
-  }
   loadMP4(url);
 }
 
-// MKV / WebM এবং যেকোনো direct file সরাসরি load
-function loadDirect(url, fmt){
-  log(`${fmt} ফাইল লোড হচ্ছে...`, 'inf');
-  if(fmt === 'MKV'){
-    log('⚠️ MKV: H.264 codec থাকলে চলবে, H.265 চলবে না', 'wrn');
-  }
-  document.getElementById('playerEmpty').style.display = 'none';
-  const video = document.getElementById('mainVideo');
-  video.style.display = 'block';
-  document.getElementById('btnDl').disabled = !isHost;
-  if(hls){ hls.destroy(); hls = null; }
-  directPlay(url);
-}
-
 async function loadMP4(url){
-  log('লিংক বিশ্লেষণ করছি...','inf');
+  log('MP4 লিংক বিশ্লেষণ করছি...','inf');
   document.getElementById('playerEmpty').style.display = 'none';
   const video = document.getElementById('mainVideo');
   video.style.display = 'block';
-  document.getElementById('btnDl').disabled = !isHost;
+  document.getElementById('btnDl').disabled = false;
 
-  if(hls){ hls.destroy(); hls = null; }
-
-  // Viewer — সরাসরি play
-  if(!isHost){
-    directPlay(url);
-    return;
-  }
-
-  // Host: HEAD request চেষ্টা
+  // Try HEAD for size
   try{
     const r = await fetch(url, {method:'HEAD'});
-    if(!r.ok){ directPlay(url); return; }
-
     const cl = r.headers.get('content-length');
     const ar = r.headers.get('accept-ranges');
-    const ct = r.headers.get('content-type') || 'video/mp4';
-
-    log(`কন্টেন্ট: ${ct}`,'inf');
-
     if(cl){
       totalSize = parseInt(cl);
       totalChunks = Math.ceil(totalSize/CHUNK_SIZE);
@@ -1099,35 +984,20 @@ async function loadMP4(url){
       chunkStates = new Array(totalChunks).fill('empty');
       renderChunks();
       log(`ফাইল: ${fmtBytes(totalSize)} | ${totalChunks} চাংক`,'ok');
-    }
 
-    // Range + MediaSource সাপোর্ট থাকলে chunk mode
-    if(ar === 'bytes' && cl && window.MediaSource){
-      const mime = getMime(ct);
-      if(MediaSource.isTypeSupported(mime)){
-        tryMediaSource(url, ct);
+      if(ar === 'bytes' && window.MediaSource){
+        tryMediaSource(url, r.headers.get('content-type')||'video/mp4');
         return;
-      } else {
-        log('MediaSource এই format সাপোর্ট করে না — সরাসরি লোড','wrn');
       }
     }
-  }catch(e){
-    log('HEAD ব্লক — সরাসরি স্ট্রিম চেষ্টা করছি...','wrn');
-  }
+  }catch(e){}
 
-  directPlay(url);
-}
-
-// সরাসরি video.src দিয়ে play — সব format এর জন্য universal fallback
-function directPlay(url){
-  const video = document.getElementById('mainVideo');
-  document.getElementById('playerEmpty').style.display = 'none';
-  video.style.display = 'block';
+  // Fallback: direct src
   video.src = url;
   video.load();
   video.play().catch(()=>{});
   attachVideoEvents(video);
-  video.addEventListener('canplay', ()=>{ log('✓ ভিডিও চালু হয়েছে ▶','ok'); loadAudioTracks(); }, {once:true});
+  video.addEventListener('canplay', ()=> loadAudioTracks(), {once:true});
   log('সরাসরি স্ট্রিম শুরু হচ্ছে','ok');
   fakeChunks(24);
 }
@@ -1144,70 +1014,25 @@ function loadHLS(url){
     hls = new Hls({ enableWorker:true });
     hls.loadSource(url);
     hls.attachMedia(video);
-
     hls.on(Hls.Events.MANIFEST_PARSED, ()=>{
       log('HLS manifest লোড হয়েছে','ok');
-      video.play().catch(()=>{ showPlayOverlay(); });
+      video.play().catch(()=>{});
+      loadAudioTracks();
     });
-
-    // Audio track এই event-এ আসে, MANIFEST_PARSED এ না
-    hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, ()=>{
-      buildAudioSelector();
-    });
-
-    // Current audio track change হলে selector update করো
-    hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, (e, data)=>{
-      const sel = document.getElementById('audioTrackSel');
-      sel.value = data.id;
-    });
-
     hls.on(Hls.Events.FRAG_LOADED, (e,d)=>{
       const sn = d.frag.sn;
       if(sn >= 0 && sn < chunkStates.length) setChunk(sn,'loaded');
     });
-
     const segs = 32;
     totalChunks = segs;
     chunkStates = new Array(segs).fill('empty');
     renderChunks();
     document.getElementById('statTotal').textContent = 'HLS';
-
   } else if(video.canPlayType('application/vnd.apple.mpegurl')){
-    // Safari native HLS
     video.src = url;
-    video.play().catch(()=>{ showPlayOverlay(); });
-    video.addEventListener('canplay', ()=> loadAudioTracks(), {once:true});
+    video.play().catch(()=>{});
   }
   attachVideoEvents(video);
-}
-
-// HLS audio track selector তৈরি করো
-function buildAudioSelector(){
-  if(!hls || !hls.audioTracks || hls.audioTracks.length === 0) return;
-
-  const sel = document.getElementById('audioTrackSel');
-  const wrap = document.getElementById('trackSel');
-  sel.innerHTML = '';
-
-  hls.audioTracks.forEach((t, i)=>{
-    const o = document.createElement('option');
-    o.value = i;
-    o.textContent = t.name || t.lang || `Track ${i+1}`;
-    sel.appendChild(o);
-  });
-
-  // Current track select করো
-  sel.value = hls.audioTrack;
-
-  if(hls.audioTracks.length > 1){
-    wrap.style.display = 'flex';
-    sel.disabled = false;
-    log(`🌐 ${hls.audioTracks.length}টি audio track — ভাষা বদলানো যাবে`,'ok');
-  } else {
-    wrap.style.display = 'flex';
-    sel.disabled = true;
-    log('১টি audio track পাওয়া গেছে','inf');
-  }
 }
 
 function loadYT(url){
@@ -1233,8 +1058,6 @@ async function tryMediaSource(url, ct){
   if(!MediaSource.isTypeSupported(mime)){
     log('MediaSource সাপোর্ট নেই — সরাসরি লোড','wrn');
     const video = document.getElementById('mainVideo');
-    document.getElementById('playerEmpty').style.display = 'none';
-    video.style.display = 'block';
     video.src = url; video.load(); video.play().catch(()=>{});
     attachVideoEvents(video);
     // audio tracks after canplay
@@ -1243,8 +1066,6 @@ async function tryMediaSource(url, ct){
   }
   const ms = new MediaSource();
   const video = document.getElementById('mainVideo');
-  document.getElementById('playerEmpty').style.display = 'none';
-  video.style.display = 'block';
   video.src = URL.createObjectURL(ms);
   startTime = Date.now(); bytesLoaded = 0;
   speedTimer = setInterval(updateSpeed, 1000);
@@ -1266,8 +1087,6 @@ async function tryMediaSource(url, ct){
     try{ sb = ms.addSourceBuffer(mime); sb.mode='sequence'; }
     catch(e){
       log('SourceBuffer এরর — সরাসরি লোড','wrn');
-      document.getElementById('playerEmpty').style.display = 'none';
-      video.style.display = 'block';
       video.src=url; video.load(); video.play().catch(()=>{});
       return;
     }
@@ -1312,15 +1131,27 @@ function appendBuf(sb, data){
 // AUDIO TRACKS
 // ================================================================
 function loadAudioTracks(){
-  // HLS এর জন্য buildAudioSelector() আলাদা handle করে (AUDIO_TRACKS_UPDATED event এ)
-  if(hls) return;
-
   const video = document.getElementById('mainVideo');
   const sel = document.getElementById('audioTrackSel');
   const wrap = document.getElementById('trackSel');
   sel.innerHTML = '';
 
-  // Native audio tracks (MP4 multi-audio — Firefox সাপোর্ট করে)
+  // HLS audio tracks
+  if(hls && hls.audioTracks && hls.audioTracks.length > 0){
+    hls.audioTracks.forEach((t,i)=>{
+      const o = document.createElement('option');
+      o.value = i;
+      o.textContent = t.name || t.lang || `Track ${i+1}`;
+      sel.appendChild(o);
+    });
+    if(hls.audioTracks.length > 1){
+      wrap.style.display = 'flex';
+      log(`🌐 ${hls.audioTracks.length}টি audio track পাওয়া গেছে`,'ok');
+    }
+    return;
+  }
+
+  // Native audio tracks (MP4 multi-audio)
   if(video.audioTracks && video.audioTracks.length > 0){
     Array.from(video.audioTracks).forEach((t,i)=>{
       const o = document.createElement('option');
@@ -1330,13 +1161,12 @@ function loadAudioTracks(){
     });
     if(video.audioTracks.length > 1){
       wrap.style.display = 'flex';
-      sel.disabled = false;
       log(`🌐 ${video.audioTracks.length}টি audio track পাওয়া গেছে`,'ok');
     } else {
-      wrap.style.display = 'none';
+      log('১টি audio track — ভাষা বদলানো যাবে না','wrn');
     }
   } else {
-    wrap.style.display = 'none';
+    log('Audio track info পাওয়া যায়নি (browser limitation)','wrn');
   }
 }
 
@@ -1359,31 +1189,16 @@ function switchAudioTrack(idx){
 // VIDEO EVENTS → HOST PUSHES TO FIREBASE
 // ================================================================
 function attachVideoEvents(video){
-  // Duplicate listener যাতে না লাগে
-  if(video._eventsAttached) return;
-  video._eventsAttached = true;
-
   video.addEventListener('play', ()=>{
-    if(isHost && !isSyncing){
-      pushPlayback('playing', video.currentTime);
-      showSyncToast('▶ সবাইকে play করছে');
-    }
+    if(isHost && !isSyncing){ pushPlayback('playing', video.currentTime); showSyncToast('▶ সবাইকে play করছে'); }
   });
   video.addEventListener('pause', ()=>{
-    if(isHost && !isSyncing){
-      pushPlayback('paused', video.currentTime);
-      showSyncToast('⏸ সবাইকে pause করছে');
-    }
+    if(isHost && !isSyncing){ pushPlayback('paused', video.currentTime); showSyncToast('⏸ সবাইকে pause করছে'); }
   });
   video.addEventListener('seeked', ()=>{
-    if(isHost && !isSyncing){
-      pushPlayback('seek', video.currentTime);
-    }
+    if(isHost && !isSyncing){ pushPlayback('seek', video.currentTime); }
   });
   video.addEventListener('timeupdate', trackActiveChunk);
-
-  // Host হলে heartbeat শুরু করো
-  if(isHost) startHeartbeat();
 }
 
 function trackActiveChunk(){
@@ -1533,9 +1348,7 @@ function clearVideo(){
 function leaveRoom(){
   if(unsubscribe){ window._fbOff(roomRef); }
   if(hls){ hls.destroy(); }
-  clearInterval(simTimer); clearInterval(speedTimer); clearInterval(heartbeatTimer);
-  const video = document.getElementById('mainVideo');
-  if(video) video._eventsAttached = false;
+  clearInterval(simTimer); clearInterval(speedTimer);
   roomCode=''; isHost=false; currentUrl='';
   setConnected(false);
   goHome();
