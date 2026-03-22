@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreamBox — ভিডিও স্ট্রিমার</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --surface3: #222230;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --accent3: #43e97b;
+    --text: #f0f0ff;
+    --muted: #7a7a9a;
+    --border: rgba(108,99,255,0.2);
+    --chunk-active: #43e97b;
+    --chunk-buffered: #6c63ff;
+    --chunk-empty: #222230;
+    --chunk-loading: #ff6584;
+  }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.95);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span { color: var(--accent); }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    background: rgba(108,99,255,0.15);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--accent);
+  }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* URL Input Area */
+  .url-section {
+    margin-bottom: 2rem;
+  }
+
+  .url-label {
+    font-size: 0.8rem;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  .url-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .url-input-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  .url-input-wrap .url-prefix {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  #urlInput {
+    width: 100%;
+    padding: 0.9rem 1rem 0.9rem 2.8rem;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  #urlInput:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(108,99,255,0.15);
+  }
+
+  #urlInput::placeholder { color: var(--muted); }
+
+  .btn-load {
+    padding: 0 1.5rem;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-load:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-load:active { transform: scale(0.97); }
+  .btn-load:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Chunk Visualization */
+  .chunk-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+
+  .section-title {
+    font-size: 0.75rem;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .chunk-stats {
+    display: flex;
+    gap: 1rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+  }
+
+  .stat { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+  .stat-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-active { background: var(--chunk-active); box-shadow: 0 0 6px var(--chunk-active); }
+  .dot-buffered { background: var(--chunk-buffered); }
+  .dot-loading { background: var(--chunk-loading); }
+  .dot-empty { background: var(--chunk-empty); border: 1px solid #333; }
+
+  .chunk-bar {
+    display: flex;
+    gap: 3px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    flex-wrap: wrap;
+    min-height: 52px;
+  }
+
+  .chunk {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    background: var(--chunk-empty);
+    border: 1px solid #2a2a3a;
+    transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
+    position: relative;
+    cursor: default;
+  }
+
+  .chunk.buffered {
+    background: var(--chunk-buffered);
+    border-color: var(--chunk-buffered);
+  }
+
+  .chunk.active {
+    background: var(--chunk-active);
+    border-color: var(--chunk-active);
+    box-shadow: 0 0 8px var(--chunk-active);
+    transform: scaleY(1.15);
+  }
+
+  .chunk.loading {
+    background: var(--chunk-loading);
+    border-color: var(--chunk-loading);
+    animation: pulse 0.8s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Video Player */
+  .player-wrap {
+    background: #000;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    position: relative;
+    min-height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .player-placeholder {
+    text-align: center;
+    color: var(--muted);
+  }
+
+  .player-placeholder .icon {
+    font-size: 3.5rem;
+    margin-bottom: 0.75rem;
+    display: block;
+    opacity: 0.4;
+  }
+
+  .player-placeholder p {
+    font-size: 0.9rem;
+  }
+
+  #videoPlayer {
+    width: 100%;
+    max-height: 500px;
+    display: none;
+    background: #000;
+  }
+
+  /* Download controls */
+  .controls-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn-secondary {
+    padding: 0.65rem 1.2rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-secondary:hover { background: var(--surface3); border-color: var(--accent); }
+  .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-danger {
+    padding: 0.65rem 1.2rem;
+    background: rgba(255,101,132,0.1);
+    border: 1px solid rgba(255,101,132,0.3);
+    border-radius: 10px;
+    color: var(--accent2);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-danger:hover { background: rgba(255,101,132,0.2); }
+  .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Status log */
+  .log-section { margin-bottom: 1.5rem; }
+
+  .log-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    max-height: 160px;
+    overflow-y: auto;
+    line-height: 1.8;
+  }
+
+  .log-entry { display: flex; gap: 10px; }
+  .log-time { color: var(--muted); min-width: 70px; }
+  .log-msg { color: var(--text); }
+  .log-msg.success { color: var(--chunk-active); }
+  .log-msg.error { color: var(--accent2); }
+  .log-msg.info { color: var(--accent); }
+  .log-msg.warn { color: #f59e0b; }
+
+  /* Info cards */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .info-card .label {
+    font-size: 0.7rem;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+
+  .info-card .value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .info-card .value.accent { color: var(--accent); }
+  .info-card .value.green { color: var(--chunk-active); }
+
+  /* Progress bar */
+  .progress-track {
+    height: 3px;
+    background: var(--surface3);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.4s;
+    width: 0%;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+  .hidden { display: none !important; }
+
+  /* Download progress overlay */
+  #dlOverlay {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    min-width: 240px;
+    display: none;
+    z-index: 200;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  #dlOverlay .dl-title {
+    color: var(--text);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  #dlOverlay .dl-info { color: var(--muted); margin-bottom: 8px; }
+  #dlOverlay .dl-bar { height: 4px; background: var(--surface3); border-radius: 2px; }
+  #dlOverlay .dl-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--chunk-active));
+    border-radius: 2px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">▶</div>
+    <div class="logo-text">Stream<span>Box</span></div>
+  </div>
+  <div class="badge">CHUNK ENGINE v2.0</div>
+</header>
+
+<main>
+  <!-- URL Input -->
+  <div class="url-section">
+    <div class="url-label">// ভিডিও লিংক পেস্ট করুন</div>
+    <div class="url-row">
+      <div class="url-input-wrap">
+        <span class="url-prefix">⌘</span>
+        <input type="text" id="urlInput"
+          placeholder="https://example.com/video.mp4  বা  YouTube, Drive লিংক..."
+        />
+      </div>
+      <button class="btn-load" id="btnLoad" onclick="loadVideo()">▶ লোড করুন</button>
+    </div>
+  </div>
+
+  <!-- Info Cards -->
+  <div class="info-grid" id="infoGrid">
+    <div class="info-card">
+      <div class="label">মোট চাংক</div>
+      <div class="value accent" id="totalChunks">—</div>
+    </div>
+    <div class="info-card">
+      <div class="label">বাফার্ড</div>
+      <div class="value green" id="bufferedChunks">0</div>
+      <div class="progress-track"><div class="progress-fill" id="bufferProgress"></div></div>
+    </div>
+    <div class="info-card">
+      <div class="label">স্পিড</div>
+      <div class="value" id="speedVal">—</div>
+    </div>
+    <div class="info-card">
+      <div class="label">সাইজ</div>
+      <div class="value" id="sizeVal">—</div>
+    </div>
+  </div>
+
+  <!-- Chunk Visualizer -->
+  <div class="chunk-section">
+    <div class="section-header">
+      <div class="section-title">// চাংক বাফার ভিজ্যুয়ালাইজার</div>
+      <div class="chunk-stats">
+        <div class="stat"><div class="stat-dot dot-active"></div>প্লে করছে</div>
+        <div class="stat"><div class="stat-dot dot-buffered"></div>বাফার্ড</div>
+        <div class="stat"><div class="stat-dot dot-loading"></div>লোড হচ্ছে</div>
+        <div class="stat"><div class="stat-dot dot-empty"></div>খালি</div>
+      </div>
+    </div>
+    <div class="chunk-bar" id="chunkBar">
+      <div style="color: var(--muted); font-size:0.8rem; font-family:'Space Mono',monospace; align-self:center;">
+        লিংক পেস্ট করে লোড করুন...
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Player -->
+  <div class="player-wrap" id="playerWrap">
+    <div class="player-placeholder" id="playerPlaceholder">
+      <span class="icon">🎬</span>
+      <p>ভিডিও লিংক দিন, চাংক এ চাংক এ লোড হবে</p>
+    </div>
+    <video id="videoPlayer" controls autoplay></video>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-row">
+    <button class="btn-secondary" id="btnDownload" disabled onclick="startChunkDownload()">
+      ⬇ চাংক ডাউনলোড
+    </button>
+    <button class="btn-secondary" id="btnDirectDl" disabled onclick="directDownload()">
+      ↓ সরাসরি ডাউনলোড
+    </button>
+    <button class="btn-danger" id="btnStop" disabled onclick="stopAll()">
+      ■ বন্ধ করুন
+    </button>
+    <button class="btn-secondary" onclick="clearAll()">
+      ↺ রিসেট
+    </button>
+  </div>
+
+  <!-- Log -->
+  <div class="log-section">
+    <div class="section-header">
+      <div class="section-title">// সিস্টেম লগ</div>
+    </div>
+    <div class="log-box" id="logBox">
+      <div class="log-entry">
+        <span class="log-time">00:00:00</span>
+        <span class="log-msg info">StreamBox চাংক ইঞ্জিন প্রস্তুত।</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Download overlay -->
+<div id="dlOverlay">
+  <div class="dl-title">⬇ চাংক ডাউনলোড</div>
+  <div class="dl-info" id="dlInfo">প্রস্তুত হচ্ছে...</div>
+  <div class="dl-bar"><div class="dl-fill" id="dlFill"></div></div>
+</div>
+
+<script>
+const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB per chunk
+let currentUrl = '';
+let totalSize = 0;
+let totalChunks = 0;
+let chunkStates = []; // 'empty','loading','buffered','active'
+let mediaSource = null;
+let sourceBuffer = null;
+let stopped = false;
+let downloadedChunks = [];
+let currentChunkIdx = 0;
+let startTime = 0;
+let bytesLoaded = 0;
+let speedInterval = null;
+let activeChunkIdx = 0;
+
+// ---- LOG ----
+function log(msg, type='info') {
+  const box = document.getElementById('logBox');
+  const now = new Date();
+  const t = now.toTimeString().slice(0,8);
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">${t}</span><span class="log-msg ${type}">${msg}</span>`;
+  box.appendChild(entry);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ---- CHUNK BAR ----
+function renderChunkBar() {
+  const bar = document.getElementById('chunkBar');
+  bar.innerHTML = '';
+  chunkStates.forEach((state, i) => {
+    const el = document.createElement('div');
+    el.className = 'chunk ' + state;
+    el.title = `চাংক #${i+1} (${formatBytes(CHUNK_SIZE)}) — ${state}`;
+    bar.appendChild(el);
+  });
+}
+
+function setChunkState(idx, state) {
+  if(idx < 0 || idx >= chunkStates.length) return;
+  chunkStates[idx] = state;
+  const chunks = document.querySelectorAll('.chunk');
+  if(chunks[idx]) {
+    chunks[idx].className = 'chunk ' + state;
+  }
+  updateStats();
+}
+
+function updateStats() {
+  const buffered = chunkStates.filter(s => s === 'buffered' || s === 'active').length;
+  document.getElementById('bufferedChunks').textContent = buffered;
+  document.getElementById('totalChunks').textContent = totalChunks || '—';
+  const pct = totalChunks ? (buffered / totalChunks * 100) : 0;
+  document.getElementById('bufferProgress').style.width = pct + '%';
+}
+
+function formatBytes(b) {
+  if(b < 1024) return b + ' B';
+  if(b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/(1024*1024)).toFixed(2) + ' MB';
+}
+
+function formatSpeed(bps) {
+  if(bps < 1024) return bps.toFixed(0) + ' B/s';
+  if(bps < 1024*1024) return (bps/1024).toFixed(1) + ' KB/s';
+  return (bps/(1024*1024)).toFixed(2) + ' MB/s';
+}
+
+// ---- LOAD VIDEO ----
+async function loadVideo() {
+  const url = document.getElementById('urlInput').value.trim();
+  if(!url) { log('লিংক দিন!', 'error'); return; }
+
+  // Detect YouTube / Drive
+  if(url.includes('youtube.com') || url.includes('youtu.be')) {
+    loadYouTube(url);
+    return;
+  }
+  if(url.includes('drive.google.com')) {
+    loadGDrive(url);
+    return;
+  }
+
+  currentUrl = url;
+  stopped = false;
+  downloadedChunks = [];
+  bytesLoaded = 0;
+  document.getElementById('sizeVal').textContent = '...';
+  document.getElementById('speedVal').textContent = '...';
+  document.getElementById('btnLoad').disabled = true;
+  document.getElementById('btnStop').disabled = false;
+  document.getElementById('btnDownload').disabled = false;
+  document.getElementById('btnDirectDl').disabled = false;
+
+  log('লিংক বিশ্লেষণ করছি: ' + url.slice(0,50) + '...', 'info');
+
+  try {
+    // HEAD request to get file size
+    let resp;
+    try {
+      resp = await fetch(url, { method: 'HEAD' });
+    } catch(e) {
+      // CORS issue — try direct streaming
+      log('HEAD রিকোয়েস্ট ব্লক। সরাসরি স্ট্রিম চেষ্টা করছি...', 'warn');
+      directStream(url);
+      return;
+    }
+
+    if(!resp.ok) {
+      log('সার্ভার রেসপন্স: ' + resp.status + ' — সরাসরি স্ট্রিম চেষ্টা...', 'warn');
+      directStream(url);
+      return;
+    }
+
+    const acceptsRange = resp.headers.get('accept-ranges');
+    const contentLength = resp.headers.get('content-length');
+    const contentType = resp.headers.get('content-type') || 'video/mp4';
+
+    log('কন্টেন্ট টাইপ: ' + contentType, 'info');
+
+    if(contentLength) {
+      totalSize = parseInt(contentLength);
+      totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+      document.getElementById('sizeVal').textContent = formatBytes(totalSize);
+      document.getElementById('totalChunks').textContent = totalChunks;
+      log(`ফাইল সাইজ: ${formatBytes(totalSize)} | মোট চাংক: ${totalChunks}`, 'success');
+
+      chunkStates = new Array(totalChunks).fill('empty');
+      renderChunkBar();
+    }
+
+    if(acceptsRange === 'bytes' && contentLength) {
+      log('✓ Range চাংকিং সাপোর্টেড — চাংক মোডে স্ট্রিম শুরু হচ্ছে', 'success');
+      startChunkStream(url, contentType);
+    } else {
+      log('Range সাপোর্ট নেই — সরাসরি স্ট্রিম শুরু হচ্ছে', 'warn');
+      directStream(url, contentType);
+    }
+
+  } catch(err) {
+    log('এরর: ' + err.message + ' — সরাসরি স্ট্রিম চেষ্টা...', 'warn');
+    directStream(url);
+  }
+}
+
+// ---- CHUNK STREAM (Range requests) ----
+async function startChunkStream(url, contentType) {
+  const video = document.getElementById('videoPlayer');
+  document.getElementById('playerPlaceholder').style.display = 'none';
+  video.style.display = 'block';
+
+  // MediaSource API
+  if(!window.MediaSource) {
+    log('MediaSource API নেই — সরাসরি স্ট্রিম করছি', 'warn');
+    directStream(url, contentType);
+    return;
+  }
+
+  const mimeType = getMimeForType(contentType);
+  if(!MediaSource.isTypeSupported(mimeType)) {
+    log('এই ফরম্যাট সাপোর্টেড না: ' + mimeType + ' — সরাসরি লোড করছি', 'warn');
+    directStream(url, contentType);
+    return;
+  }
+
+  mediaSource = new MediaSource();
+  video.src = URL.createObjectURL(mediaSource);
+
+  mediaSource.addEventListener('sourceopen', async () => {
+    sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+    sourceBuffer.mode = 'sequence';
+    startTime = Date.now();
+
+    speedInterval = setInterval(updateSpeed, 1000);
+
+    // Stream chunks sequentially
+    for(let i = 0; i < totalChunks; i++) {
+      if(stopped) break;
+      await fetchAndAppendChunk(url, i);
+    }
+
+    if(!stopped) {
+      await waitForBuffer();
+      mediaSource.endOfStream();
+      log('স্ট্রিম সম্পূর্ণ হয়েছে!', 'success');
+    }
+    clearInterval(speedInterval);
+    document.getElementById('btnLoad').disabled = false;
+    document.getElementById('btnStop').disabled = true;
+  });
+}
+
+async function fetchAndAppendChunk(url, idx) {
+  const start = idx * CHUNK_SIZE;
+  const end = Math.min(start + CHUNK_SIZE - 1, totalSize - 1);
+
+  setChunkState(idx, 'loading');
+  log(`চাংক #${idx+1} ডাউনলোড করছি [${formatBytes(start)}–${formatBytes(end)}]`, 'info');
+
+  try {
+    const resp = await fetch(url, {
+      headers: { 'Range': `bytes=${start}-${end}` }
+    });
+
+    if(!resp.ok && resp.status !== 206) {
+      setChunkState(idx, 'empty');
+      log(`চাংক #${idx+1} ফেইলড (${resp.status})`, 'error');
+      return;
+    }
+
+    const buffer = await resp.arrayBuffer();
+    bytesLoaded += buffer.byteLength;
+    downloadedChunks[idx] = buffer;
+
+    // Append to MediaSource
+    await appendToBuffer(buffer);
+    setChunkState(idx, 'buffered');
+    log(`✓ চাংক #${idx+1} সম্পূর্ণ (${formatBytes(buffer.byteLength)})`, 'success');
+
+    // Mark current playing chunk
+    trackPlayingChunk();
+
+  } catch(err) {
+    setChunkState(idx, 'empty');
+    log(`চাংক #${idx+1} এরর: ${err.message}`, 'error');
+  }
+}
+
+function appendToBuffer(data) {
+  return new Promise((resolve, reject) => {
+    if(!sourceBuffer || mediaSource.readyState !== 'open') { resolve(); return; }
+    const onUpdate = () => {
+      sourceBuffer.removeEventListener('updateend', onUpdate);
+      resolve();
+    };
+    sourceBuffer.addEventListener('updateend', onUpdate);
+    try { sourceBuffer.appendBuffer(data); }
+    catch(e) { resolve(); }
+  });
+}
+
+function waitForBuffer() {
+  return new Promise(resolve => {
+    if(!sourceBuffer || !sourceBuffer.updating) { resolve(); return; }
+    sourceBuffer.addEventListener('updateend', resolve, { once: true });
+  });
+}
+
+function trackPlayingChunk() {
+  const video = document.getElementById('videoPlayer');
+  if(!video || !totalSize) return;
+  const playedBytes = (video.currentTime / (video.duration || 1)) * totalSize;
+  const playingChunk = Math.floor(playedBytes / CHUNK_SIZE);
+  if(playingChunk !== activeChunkIdx && playingChunk < totalChunks) {
+    if(activeChunkIdx < totalChunks && chunkStates[activeChunkIdx] === 'active')
+      setChunkState(activeChunkIdx, 'buffered');
+    activeChunkIdx = playingChunk;
+    if(chunkStates[activeChunkIdx] === 'buffered')
+      setChunkState(activeChunkIdx, 'active');
+  }
+}
+
+function getMimeForType(ct) {
+  if(ct.includes('webm')) return 'video/webm; codecs="vp8, vorbis"';
+  if(ct.includes('mp4') || ct.includes('mpeg')) return 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+  if(ct.includes('ogg')) return 'video/ogg; codecs="theora, vorbis"';
+  return 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+}
+
+// ---- DIRECT STREAM (no chunking) ----
+function directStream(url, contentType) {
+  const video = document.getElementById('videoPlayer');
+  document.getElementById('playerPlaceholder').style.display = 'none';
+  video.style.display = 'block';
+  video.src = url;
+  video.load();
+  video.play().catch(() => {});
+
+  log('সরাসরি স্ট্রিম শুরু হয়েছে', 'success');
+  document.getElementById('sizeVal').textContent = 'লাইভ';
+  document.getElementById('totalChunks').textContent = '∞';
+
+  // Simulate fake chunks for visual
+  totalChunks = 32;
+  chunkStates = new Array(totalChunks).fill('empty');
+  renderChunkBar();
+  simulateChunks();
+
+  document.getElementById('btnLoad').disabled = false;
+  document.getElementById('btnStop').disabled = false;
+}
+
+let simInterval = null;
+function simulateChunks() {
+  let i = 0;
+  clearInterval(simInterval);
+  simInterval = setInterval(() => {
+    if(stopped || i >= totalChunks) { clearInterval(simInterval); return; }
+    if(i > 0 && chunkStates[i-1] === 'active') setChunkState(i-1, 'buffered');
+    setChunkState(i, 'active');
+    i++;
+  }, 600);
+}
+
+// ---- YOUTUBE ----
+function loadYouTube(url) {
+  let videoId = '';
+  try {
+    const u = new URL(url);
+    videoId = u.searchParams.get('v') || u.pathname.split('/').pop();
+  } catch(e) {}
+
+  if(!videoId) { log('YouTube ID পাওয়া গেলো না', 'error'); return; }
+
+  const video = document.getElementById('videoPlayer');
+  const wrap = document.getElementById('playerWrap');
+  document.getElementById('playerPlaceholder').style.display = 'none';
+  video.style.display = 'none';
+
+  // Remove old iframe
+  const old = document.getElementById('ytFrame');
+  if(old) old.remove();
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'ytFrame';
+  iframe.width = '100%';
+  iframe.height = '480';
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+  iframe.frameBorder = '0';
+  iframe.allowFullscreen = true;
+  iframe.allow = 'autoplay; encrypted-media';
+  wrap.appendChild(iframe);
+
+  log('YouTube ভিডিও এম্বেড করা হয়েছে: ' + videoId, 'success');
+  log('নোট: YouTube API সীমাবদ্ধতার জন্য চাংক ডাউনলোড সম্ভব নয়', 'warn');
+
+  totalChunks = 24;
+  chunkStates = new Array(totalChunks).fill('empty');
+  renderChunkBar();
+  simulateChunks();
+}
+
+// ---- GOOGLE DRIVE ----
+function loadGDrive(url) {
+  let fileId = '';
+  const m = url.match(/\/d\/([^/]+)\//);
+  if(m) fileId = m[1];
+
+  if(!fileId) { log('Google Drive ID পাওয়া গেলো না', 'error'); return; }
+
+  const directUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+  log('Google Drive ডিরেক্ট লিংক তৈরি হলো', 'info');
+  document.getElementById('urlInput').value = directUrl;
+  currentUrl = directUrl;
+
+  const video = document.getElementById('videoPlayer');
+  document.getElementById('playerPlaceholder').style.display = 'none';
+  video.style.display = 'block';
+  video.src = `https://drive.google.com/file/d/${fileId}/preview`;
+  log('Google Drive ভিডিও লোড হচ্ছে...', 'info');
+  directStream(directUrl);
+}
+
+// ---- SPEED METER ----
+function updateSpeed() {
+  const elapsed = (Date.now() - startTime) / 1000;
+  if(elapsed > 0 && bytesLoaded > 0) {
+    const bps = bytesLoaded / elapsed;
+    document.getElementById('speedVal').textContent = formatSpeed(bps);
+  }
+}
+
+// ---- CHUNK DOWNLOAD ----
+async function startChunkDownload() {
+  if(!currentUrl) { log('কোনো URL নেই', 'error'); return; }
+  if(downloadedChunks.length > 0 && downloadedChunks.filter(Boolean).length === totalChunks) {
+    mergeAndDownload();
+    return;
+  }
+
+  log('চাংক ডাউনলোড শুরু হচ্ছে...', 'info');
+  document.getElementById('dlOverlay').style.display = 'block';
+
+  const chunks = [];
+  const total = totalChunks || 10;
+
+  for(let i = 0; i < total; i++) {
+    if(stopped) break;
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE - 1, totalSize - 1);
+
+    document.getElementById('dlInfo').textContent = `চাংক ${i+1}/${total} ডাউনলোড হচ্ছে...`;
+    document.getElementById('dlFill').style.width = ((i/total)*100) + '%';
+
+    try {
+      const resp = await fetch(currentUrl, { headers: totalSize ? { 'Range': `bytes=${start}-${end}` } : {} });
+      const buf = await resp.arrayBuffer();
+      chunks.push(buf);
+      log(`✓ চাংক #${i+1} সংরক্ষিত (${formatBytes(buf.byteLength)})`, 'success');
+    } catch(e) {
+      log(`চাংক #${i+1} ডাউনলোড ফেইলড`, 'error');
+      break;
+    }
+  }
+
+  document.getElementById('dlFill').style.width = '100%';
+  document.getElementById('dlInfo').textContent = 'মার্জ করছি...';
+
+  setTimeout(() => {
+    mergeAndSave(chunks);
+    document.getElementById('dlOverlay').style.display = 'none';
+  }, 500);
+}
+
+function mergeAndSave(chunks) {
+  const blob = new Blob(chunks, { type: 'video/mp4' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'streambox_video_' + Date.now() + '.mp4';
+  a.click();
+  log(`✓ ডাউনলোড শুরু হয়েছে! (${formatBytes(blob.size)})`, 'success');
+}
+
+function mergeAndDownload() {
+  const chunks = downloadedChunks.filter(Boolean);
+  mergeAndSave(chunks);
+}
+
+// ---- DIRECT DOWNLOAD ----
+function directDownload() {
+  const url = document.getElementById('urlInput').value.trim();
+  if(!url) { log('URL নেই', 'error'); return; }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '';
+  a.target = '_blank';
+  a.click();
+  log('সরাসরি ডাউনলোড শুরু হয়েছে', 'info');
+}
+
+// ---- STOP ----
+function stopAll() {
+  stopped = true;
+  clearInterval(simInterval);
+  clearInterval(speedInterval);
+  const video = document.getElementById('videoPlayer');
+  video.pause();
+  log('স্ট্রিম বন্ধ করা হয়েছে', 'warn');
+  document.getElementById('btnLoad').disabled = false;
+  document.getElementById('btnStop').disabled = true;
+}
+
+// ---- CLEAR ----
+function clearAll() {
+  stopAll();
+  currentUrl = '';
+  totalSize = 0;
+  totalChunks = 0;
+  chunkStates = [];
+  downloadedChunks = [];
+  bytesLoaded = 0;
+
+  document.getElementById('urlInput').value = '';
+  document.getElementById('videoPlayer').src = '';
+  document.getElementById('videoPlayer').style.display = 'none';
+  document.getElementById('playerPlaceholder').style.display = 'block';
+  document.getElementById('chunkBar').innerHTML =
+    '<div style="color:var(--muted);font-size:0.8rem;font-family:Space Mono,monospace;align-self:center;">লিংক পেস্ট করে লোড করুন...</div>';
+  document.getElementById('totalChunks').textContent = '—';
+  document.getElementById('bufferedChunks').textContent = '0';
+  document.getElementById('speedVal').textContent = '—';
+  document.getElementById('sizeVal').textContent = '—';
+  document.getElementById('bufferProgress').style.width = '0%';
+  document.getElementById('btnDownload').disabled = true;
+  document.getElementById('btnDirectDl').disabled = true;
+  document.getElementById('btnStop').disabled = true;
+
+  const ytf = document.getElementById('ytFrame');
+  if(ytf) ytf.remove();
+
+  log('রিসেট সম্পূর্ণ', 'info');
+}
+
+// Track video playback for chunk visualization
+setInterval(() => {
+  const video = document.getElementById('videoPlayer');
+  if(video && video.src && !video.paused && totalSize > 0) {
+    trackPlayingChunk();
+  }
+}, 500);
+
+// Enter key support
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter') loadVideo();
+});
+
+log('চাংক ইঞ্জিন তৈরি। MP4, WebM, Ogg এবং YouTube লিংক সাপোর্টেড।', 'success');
+</script>
+</body>
+</html>
