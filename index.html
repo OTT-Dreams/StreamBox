@@ -885,6 +885,12 @@ function enterApp(){
   if(isAdmin){
     db.ref(`rooms/${roomCode}`).onDisconnect().remove();
   }
+  roomRef.on('value', snap=>{
+  if(!snap.exists() && !isAdmin){
+    showToast('⚠️ Admin room বন্ধ করে দিয়েছে!', 5000);
+    setTimeout(()=>location.reload(), 3000);
+  }
+});
 }
 
 // ===== FIREBASE LISTENERS =====
@@ -923,8 +929,7 @@ function setupListeners(){
   roomRef.child('syncCmd').on('value', snap=>{
     const cmd = snap.val();
     if(!cmd || isAdmin) return;
-    if(cmd._lastHandled === cmd.ts) return;
-    cmd._lastHandled = cmd.ts;
+    if(!cmd._t) return;
     handleSyncCmd(cmd);
   });
 
@@ -942,7 +947,10 @@ function sendSyncCmd(type, time){
   });
 }
 
+let lastHandledTs = 0;
 function handleSyncCmd(cmd){
+    if(cmd._t === lastHandledTs) return;
+lastHandledTs = cmd._t;
   if(!cmd || isAdmin) return;
   const video = document.getElementById('videoEl');
   if(!video.src && !video.currentSrc) return;
@@ -998,6 +1006,24 @@ async function viewerLoadVideo(url){
   if(url.includes('youtube.com')||url.includes('youtu.be')){ loadYouTube(url); return; }
   if(url.includes('drive.google.com')){ loadGDrive(url); return; }
   await detectAndStream(url, false);
+
+  // Video ready হলে latest sync command দিয়ে jump করো
+  const v = document.getElementById('videoEl');
+  v.addEventListener('canplay', async ()=>{
+    const snap = await db.ref(`rooms/${roomCode}/syncCmd`).once('value');
+    const cmd = snap.val();
+    if(!cmd) return;
+    const age = cmd.serverTs ? (Date.now() - cmd.serverTs) / 1000 : 0;
+    syncAllowed = true;
+    if(cmd.type === 'play'){
+      v.currentTime = cmd.time + age;
+      v.play().catch(()=>{});
+    } else if(cmd.type === 'pause'){
+      v.currentTime = cmd.time;
+      v.pause();
+    }
+    setTimeout(()=>{ syncAllowed = false; }, 1500);
+  }, {once: true});
 }
 
 // ===== DETECT & STREAM =====
@@ -1454,6 +1480,10 @@ function switchChatTab(tab){
 async function leaveRoom(){
   stopMic();
   stopped=true;
+  if(roomRef) roomRef.off();
+db.ref(`rooms/${roomCode}/members`).off();
+db.ref(`rooms/${roomCode}/chat`).off();
+db.ref(`rooms/${roomCode}/syncCmd`).off();
   clearInterval(simInt);clearInterval(speedInterval);
   await db.ref(`rooms/${roomCode}/members/${myId}`).remove();
   if(isAdmin) await db.ref(`rooms/${roomCode}`).remove();
@@ -1494,7 +1524,7 @@ document.getElementById('videoEl').addEventListener('play',e=>{
 });
 document.getElementById('videoEl').addEventListener('pause',e=>{
   if(!isAdmin && !syncAllowed){
-    // viewer নিজে pause করতে পারবে না
+    document.getElementById('videoEl').play().catch(()=>{});
   }
 });
 </script>
