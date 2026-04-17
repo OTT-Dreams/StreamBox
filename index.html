@@ -921,6 +921,8 @@ function setupListeners(){
   roomRef.child('syncCmd').on('value', snap=>{
     const cmd = snap.val();
     if(!cmd || isAdmin) return;
+    if(cmd._lastHandled === cmd.ts) return;
+    cmd._lastHandled = cmd.ts;
     handleSyncCmd(cmd);
   });
 
@@ -938,14 +940,14 @@ function sendSyncCmd(type, time){
 }
 
 function handleSyncCmd(cmd){
-  if(cmd.by === myId) return;
+  if(!cmd || isAdmin) return;
   const video = document.getElementById('videoEl');
   if(!video.src && !video.currentSrc) return;
-  const age = (Date.now() - cmd.ts)/1000;
-
+  if(Date.now() - cmd.ts > 10000) return;
+  const age = (Date.now() - cmd.ts) / 1000;
   if(cmd.type === 'play'){
     const target = cmd.time + age;
-    if(Math.abs(video.currentTime - target) > 1.5) video.currentTime = target;
+    if(Math.abs(video.currentTime - target) > 1.0) video.currentTime = target;
     video.play().catch(()=>{});
     document.getElementById('syncStatus').textContent='▶ PLAY';
     document.getElementById('syncStatus').style.color='var(--accent3)';
@@ -956,6 +958,7 @@ function handleSyncCmd(cmd){
     document.getElementById('syncStatus').style.color='var(--accent4)';
   } else if(cmd.type === 'seek'){
     video.currentTime = cmd.time;
+    video.pause();
     document.getElementById('syncStatus').textContent='⏪ SYNCED';
     document.getElementById('syncStatus').style.color='var(--accent)';
   }
@@ -1456,10 +1459,10 @@ async function leaveRoom(){
 setInterval(()=>{
   if(!isAdmin||!roomCode)return;
   const v=document.getElementById('videoEl');
-  if(!v||!v.src)return;
+  if(!v||!v.src||v.readyState < 2)return;
   db.ref(`rooms/${roomCode}/syncCmd`).set({
     type:v.paused?'pause':'play',
-    time:v.currentTime,ts:Date.now(),by:myId
+    time:v.currentTime,ts:Date.now(),by:myId,_t:Date.now()
   });
 },5000);
 
