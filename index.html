@@ -974,12 +974,6 @@ window.addEventListener('firebase-ready', () => {
     }
   });
 
-function enterLobby() {
-  $('splash').style.display = 'none';
-  $('lobby').style.display = 'block';
-  $('lobby-avatar').src = currentUser.photoURL || '';
-  $('lobby-name').textContent = currentUser.displayName || currentUser.email;
-}
 
 $('btn-logout') && document.addEventListener('DOMContentLoaded', () => {
   $('btn-logout').addEventListener('click', async () => {
@@ -1443,7 +1437,7 @@ function handleVideoSync(data) {
     showVideoWrapper('drive');
   }
 }
-}
+
   // Sync time (allow 2s drift)
   if (data.type === 'html5' && !isAdmin) {
     const now = Date.now();
