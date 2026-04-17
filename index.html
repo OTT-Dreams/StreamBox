@@ -1,1713 +1,739 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CineRoom — Watch Together</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<!-- Firebase -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getDatabase, ref, set, get, onValue, push, serverTimestamp, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDQw9ksYuDM451LjtHpnUPoRx4Mh9zEOOE",
-    authDomain: "movie-960db.firebaseapp.com",
-    databaseURL: "https://movie-960db-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "movie-960db",
-    storageBucket: "movie-960db.firebasestorage.app",
-    messagingSenderId: "169250488305",
-    appId: "1:169250488305:web:39cf95ce3fb45e95d20e50"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getDatabase(app);
-  const provider = new GoogleAuthProvider();
-
-  window._firebase = { auth, db, ref, set, get, onValue, push, serverTimestamp, off, signInWithPopup, signOut, provider, GoogleAuthProvider };
-  window.dispatchEvent(new Event('firebase-ready'));
-</script>
-
+<title>CineSync — Watch Party</title>
 <style>
-:root {
-  --bg: #080a0f;
-  --bg2: #0d1018;
-  --bg3: #131720;
-  --panel: #161c27;
-  --border: #1e2535;
-  --accent: #e8c15a;
-  --accent2: #c9a63e;
-  --red: #e85a5a;
-  --green: #5ae89a;
-  --blue: #5a9ae8;
-  --text: #e8eaf0;
-  --text2: #8892a4;
-  --text3: #545f73;
-  --radius: 12px;
-  --shadow: 0 8px 32px rgba(0,0,0,0.6);
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#080810;
+  --surface:#0e0e1a;
+  --card:#14142a;
+  --card2:#1c1c34;
+  --accent:#e63946;
+  --accent2:#457b9d;
+  --gold:#ffd60a;
+  --text:#f1faee;
+  --muted:#6b7280;
+  --border:rgba(255,255,255,0.07);
+  --admin-glow:rgba(230,57,70,0.4);
+  --green:#06d6a0;
+  --orange:#fb8500;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; }
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+/* NOISE */
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.5}
 
-/* ═══ SPLASH / AUTH ═══ */
-#splash {
-  position: fixed; inset: 0;
-  background: var(--bg);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  z-index: 1000;
-  gap: 32px;
-}
-.splash-logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(56px, 10vw, 96px);
-  letter-spacing: 6px;
-  color: var(--accent);
-  text-shadow: 0 0 60px rgba(232,193,90,0.4);
-  line-height: 1;
-}
-.splash-sub {
-  color: var(--text2);
-  font-size: 15px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-}
-.btn-google {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 14px 28px;
-  border-radius: 50px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-google:hover { background: var(--bg3); border-color: var(--accent); color: var(--accent); }
-.btn-google svg { width:20px; height:20px; }
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:rgba(8,8,16,.96);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100}
 
-/* ═══ LOBBY ═══ */
-#lobby {
-  display: none;
-  min-height: 100vh;
-  padding: 24px;
-  background: var(--bg);
-}
-.lobby-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 48px;
-}
-.logo-sm {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 32px; letter-spacing: 4px;
-  color: var(--accent);
-}
-.user-pill {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 50px;
-  padding: 8px 16px 8px 8px;
-}
-.user-pill img { width:32px; height:32px; border-radius:50%; object-fit:cover; }
-.user-pill span { font-size:13px; color: var(--text2); }
-.btn-sm {
-  background: transparent; border: 1px solid var(--border);
-  color: var(--text3); padding: 6px 12px; border-radius: 6px;
-  font-size:12px; cursor:pointer; transition: all 0.2s;
-}
-.btn-sm:hover { border-color: var(--red); color: var(--red); }
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:2px;color:var(--accent);line-height:1}
+.logo-sub{font-size:.65rem;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:3px;text-transform:uppercase}
 
-.lobby-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  max-width: 900px;
-  margin: 0 auto;
-}
-.lobby-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 32px;
-  display: flex; flex-direction: column; gap: 16px;
-  transition: border-color 0.2s;
-}
-.lobby-card:hover { border-color: var(--accent); }
-.lobby-card h2 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px; letter-spacing: 2px;
-  color: var(--accent);
-}
-.lobby-card p { color: var(--text2); font-size:13px; line-height:1.6; }
-.input-field {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px 16px;
-  color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-  width: 100%;
-}
-.input-field:focus { border-color: var(--accent); }
-.btn-primary {
-  background: var(--accent);
-  color: #000;
-  border: none;
-  border-radius: 8px;
-  padding: 13px 24px;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-}
-.btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
-.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.header-right{display:flex;align-items:center;gap:10px}
 
-/* ═══ ROOM ═══ */
-#room {
-  display: none;
-  height: 100vh;
-  flex-direction: column;
-  background: var(--bg);
-  overflow: hidden;
-}
+.role-badge{font-family:'JetBrains Mono',monospace;font-size:.7rem;padding:4px 12px;border-radius:4px;text-transform:uppercase;letter-spacing:2px}
+.role-admin{background:rgba(230,57,70,.15);border:1px solid var(--accent);color:var(--accent)}
+.role-viewer{background:rgba(69,123,157,.15);border:1px solid var(--accent2);color:var(--accent2)}
 
-.room-header {
-  height: 52px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center;
-  padding: 0 16px; gap: 16px;
-  flex-shrink: 0;
-}
-.room-logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px; letter-spacing: 3px; color: var(--accent);
-}
-.room-id-badge {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px; color: var(--text2);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.room-id-badge:hover { border-color: var(--accent); color: var(--accent); }
-.badge-role {
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-.badge-admin { background: rgba(232,193,90,0.15); color: var(--accent); border: 1px solid rgba(232,193,90,0.3); }
-.badge-viewer { background: rgba(90,154,232,0.15); color: var(--blue); border: 1px solid rgba(90,154,232,0.3); }
-.header-spacer { flex: 1; }
-.viewer-count {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 13px; color: var(--text2);
-}
-.dot-live { width:7px; height:7px; border-radius:50%; background: var(--red); animation: pulse 1.5s infinite; }
-@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.viewers-count{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+.live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:livePulse 1.5s ease-in-out infinite}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(6,214,160,.5)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(6,214,160,0)}}
 
-.room-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+/* LAYOUT */
+.app{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 57px);gap:0}
 
-/* ═══ VIDEO AREA ═══ */
-.video-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: #000;
-  position: relative;
-  overflow: hidden;
-}
+/* MAIN VIDEO SIDE */
+.video-side{display:flex;flex-direction:column;border-right:1px solid var(--border)}
 
-.video-setup {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 20px;
-  padding: 32px;
-  background: var(--bg);
-}
-.setup-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 36px; letter-spacing: 3px; color: var(--accent);
-}
+/* URL BAR (admin only) */
+.url-bar{padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--surface);display:flex;gap:10px}
+.url-bar.hidden{display:none}
+.url-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.8rem;outline:none;transition:border-color .2s}
+.url-input:focus{border-color:var(--accent)}
+.url-input::placeholder{color:var(--muted)}
+.btn-go{padding:.7rem 1.4rem;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;transition:opacity .2s,transform .1s;white-space:nowrap}
+.btn-go:hover{opacity:.85}
+.btn-go:active{transform:scale(.97)}
 
-.source-tabs {
-  display: flex; gap: 8px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 4px;
-}
-.tab-btn {
-  background: transparent; border: none; color: var(--text2);
-  padding: 8px 16px; border-radius: 7px; cursor: pointer;
-  font-family: 'DM Sans', sans-serif; font-size: 13px;
-  transition: all 0.2s;
-}
-.tab-btn.active { background: var(--panel); color: var(--text); }
+/* VIDEO PLAYER */
+.player-container{position:relative;background:#000;flex:1;min-height:300px;display:flex;align-items:center;justify-content:center}
+#videoEl{width:100%;max-height:60vh;display:none;background:#000}
 
-.source-panel { width: 100%; max-width: 560px; display:none; flex-direction:column; gap:12px; }
-.source-panel.active { display: flex; }
+.idle-screen{text-align:center;color:var(--muted);padding:3rem}
+.idle-icon{font-size:4rem;margin-bottom:1rem;opacity:.3}
+.idle-title{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;color:var(--muted);margin-bottom:.5rem}
+.idle-sub{font-size:.85rem}
 
-#video-wrapper {
-  width: 100%; height: 100%;
-  position: relative;
-  display: none;
-  background: #000;
-}
-#main-video {
-  width: 100%; height: 100%;
-  object-fit: contain;
-}
-#yt-player { width: 100%; height: 100%; border: none; }
-#drive-player { width: 100%; height: 100%; border: none; }
+/* SYNC OVERLAY */
+.sync-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:50}
+.sync-overlay.show{display:flex}
+.sync-spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sync-text{font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--muted)}
 
-/* ═══ VIDEO CONTROLS ═══ */
-.video-controls {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  background: linear-gradient(transparent, rgba(0,0,0,0.92));
-  padding: 48px 20px 16px;
-  display: flex; flex-direction: column; gap: 10px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-#video-wrapper:hover .video-controls { opacity: 1; }
+/* ADMIN CONTROLS */
+.controls-bar{padding:1rem 1.5rem;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.ctrl-btn{width:40px;height:40px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .1s}
+.ctrl-btn:hover{background:var(--card);border-color:var(--accent)}
+.ctrl-btn:active{transform:scale(.92)}
+.ctrl-btn.disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
 
-.progress-wrap {
-  position: relative; height: 4px; cursor: pointer;
-  background: rgba(255,255,255,0.15);
-  border-radius: 4px;
-}
-.progress-wrap:hover { height: 6px; }
-#progress-bar {
-  height: 100%; background: var(--accent);
-  border-radius: 4px; pointer-events: none;
-  transition: width 0.1s linear;
-}
-.progress-thumb {
-  position: absolute; top: 50%; right: -6px;
-  width: 12px; height: 12px;
-  background: var(--accent);
-  border-radius: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-}
+.ctrl-btn.play-pause{width:50px;height:50px;background:var(--accent);border-color:var(--accent);border-radius:50%;font-size:1.1rem}
+.ctrl-btn.play-pause:hover{background:#c1121f;border-color:#c1121f}
 
-.ctrl-row {
-  display: flex; align-items: center; gap: 12px;
-}
-.ctrl-btn {
-  background: none; border: none;
-  color: rgba(255,255,255,0.85);
-  cursor: pointer; padding: 6px;
-  border-radius: 6px;
-  transition: all 0.15s;
-  display: flex; align-items: center; justify-content: center;
-}
-.ctrl-btn:hover { color: var(--accent); background: rgba(255,255,255,0.08); }
-.ctrl-btn.admin-only { display: none; }
-.ctrl-btn svg { width: 20px; height: 20px; }
-.ctrl-btn.big svg { width: 28px; height: 28px; }
+.time-display{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--muted);margin-left:4px}
 
-.time-display {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px; color: rgba(255,255,255,0.7);
-}
-.ctrl-spacer { flex: 1; }
+.seek-wrap{flex:1;display:flex;align-items:center;gap:10px}
+.seek-track{flex:1;height:4px;background:var(--card2);border-radius:2px;cursor:pointer;position:relative;overflow:visible}
+.seek-filled{height:100%;background:var(--accent);border-radius:2px;pointer-events:none;max-width:100%}
+.seek-thumb{position:absolute;top:50%;right:0;transform:translate(50%,-50%);width:12px;height:12px;background:var(--text);border-radius:50%;border:2px solid var(--accent);pointer-events:none;opacity:0;transition:opacity .2s}
+.seek-track:hover .seek-thumb{opacity:1}
 
-/* Volume */
-.vol-wrap { display:flex; align-items:center; gap:8px; }
-.vol-slider {
-  width: 72px; height: 3px;
-  -webkit-appearance: none;
-  background: rgba(255,255,255,0.2);
-  border-radius: 3px; cursor: pointer; outline: none;
-}
-.vol-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px; height: 12px;
-  background: #fff;
-  border-radius: 50%;
-}
+.vol-wrap{display:flex;align-items:center;gap:6px}
+.vol-icon{font-size:.9rem;cursor:pointer;color:var(--muted)}
+.vol-slider{-webkit-appearance:none;width:70px;height:3px;background:var(--card2);border-radius:2px;cursor:pointer}
+.vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--text);border-radius:50%;cursor:pointer}
 
-/* Language selector */
-.lang-select {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  outline: none;
-  display: none;
-}
-.lang-select.visible { display: block; }
+/* VIEWER CONTROL BAR */
+.viewer-bar{padding:1rem 1.5rem;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.viewer-bar.hidden{display:none}
+.sync-status{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted)}
+.sync-indicator{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.sync-indicator.synced{background:var(--green)}
+.sync-indicator.desynced{background:var(--orange);animation:livePulse 1s ease-in-out infinite}
 
-/* ═══ SIDEBAR ═══ */
-.sidebar {
-  width: 320px;
-  background: var(--panel);
-  border-left: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  flex-shrink: 0;
-}
+/* CHAT + RIGHT SIDE */
+.chat-side{display:flex;flex-direction:column;background:var(--surface)}
 
-.sidebar-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-}
-.stab {
-  flex: 1; padding: 13px 8px;
-  background: none; border: none; border-bottom: 2px solid transparent;
-  color: var(--text2); font-family: 'DM Sans', sans-serif;
-  font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
-  text-transform: uppercase; cursor: pointer;
-  transition: all 0.2s;
-}
-.stab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.stab-icon { display: block; font-size: 16px; margin-bottom: 2px; }
+.chat-header{padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.chat-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;color:var(--text)}
+.chat-tabs{display:flex;gap:4px}
+.tab-btn{padding:4px 14px;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--muted);font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--card2);border-color:var(--border);color:var(--text)}
 
-.sidebar-panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
-.sidebar-panel.active { display: flex; }
+/* MESSAGES */
+.messages{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:8px;min-height:0}
+.messages::-webkit-scrollbar{width:3px}
+.messages::-webkit-scrollbar-thumb{background:var(--card2)}
 
-/* Chat */
-.chat-messages {
-  flex: 1; overflow-y: auto;
-  padding: 12px;
-  display: flex; flex-direction: column; gap: 8px;
-  scroll-behavior: smooth;
-}
-.chat-messages::-webkit-scrollbar { width: 4px; }
-.chat-messages::-webkit-scrollbar-track { background: transparent; }
-.chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.msg{display:flex;gap:8px;align-items:flex-start}
+.msg-avatar{width:28px;height:28px;border-radius:6px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0;font-weight:600}
+.msg-body{}
+.msg-name{font-size:.7rem;font-weight:600;margin-bottom:2px}
+.msg-name.admin-name{color:var(--accent)}
+.msg-name.viewer-name{color:var(--accent2)}
+.msg-text{font-size:.82rem;color:var(--text);line-height:1.5;background:var(--card);border-radius:0 8px 8px 8px;padding:6px 10px;display:inline-block;max-width:220px;word-break:break-word}
 
-.chat-msg {
-  display: flex; gap: 8px; align-items: flex-start;
-}
-.chat-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
-  object-fit: cover; flex-shrink: 0;
-}
-.chat-avatar-txt {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--bg3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; color: var(--accent); flex-shrink: 0;
-  font-weight: 600;
-}
-.chat-content {}
-.chat-name { font-size: 11px; color: var(--text3); margin-bottom: 2px; }
-.chat-bubble {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 0 10px 10px 10px;
-  padding: 8px 12px;
-  font-size: 13px; line-height: 1.5;
-  color: var(--text);
-  max-width: 220px; word-wrap: break-word;
-}
-.chat-sys {
-  text-align: center;
-  font-size: 11px; color: var(--text3);
-  padding: 4px 0;
-  font-style: italic;
-}
-.chat-input-wrap {
-  padding: 12px;
-  border-top: 1px solid var(--border);
-  display: flex; gap: 8px;
-}
-.chat-input {
-  flex: 1;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 12px;
-  color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  outline: none;
-  resize: none;
-  height: 36px;
-}
-.chat-input:focus { border-color: var(--accent); }
-.send-btn {
-  background: var(--accent); border: none;
-  color: #000; width: 36px; height: 36px;
-  border-radius: 8px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s; flex-shrink: 0;
-}
-.send-btn:hover { background: var(--accent2); }
-.send-btn svg { width: 16px; height: 16px; }
+.msg-system{text-align:center;font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace;padding:4px 0}
 
-/* Viewers */
-.viewers-list {
-  flex: 1; overflow-y: auto; padding: 12px;
-  display: flex; flex-direction: column; gap: 8px;
-}
-.viewer-item {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 8px; padding: 10px 12px;
-}
-.viewer-item img {
-  width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
-}
-.viewer-info { flex: 1; min-width: 0; }
-.viewer-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.viewer-status { font-size: 11px; color: var(--text3); }
-.viewer-badge-admin { font-size: 10px; background: rgba(232,193,90,0.15); color: var(--accent); border: 1px solid rgba(232,193,90,0.3); padding: 2px 6px; border-radius: 4px; }
+/* VOICE CHAT */
+.voice-section{padding:1rem;border-top:1px solid var(--border)}
+.voice-header{font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.75rem}
+.voice-users{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem;min-height:36px}
+.voice-user{display:flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:.75rem}
+.voice-user.speaking{border-color:var(--green);box-shadow:0 0 8px rgba(6,214,160,.3)}
+.voice-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.voice-user.speaking .voice-dot{background:var(--green);animation:livePulse 1s infinite}
+.voice-empty{font-size:.75rem;color:var(--muted);align-self:center}
 
-/* Voice */
-.voice-panel {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 20px;
-  padding: 24px;
-}
-.mic-btn {
-  width: 72px; height: 72px; border-radius: 50%;
-  background: var(--bg3);
-  border: 2px solid var(--border);
-  color: var(--text2);
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.3s;
-  font-size: 28px;
-}
-.mic-btn.active {
-  background: rgba(232,193,90,0.15);
-  border-color: var(--accent);
-  color: var(--accent);
-  animation: mic-pulse 1s infinite;
-}
-@keyframes mic-pulse {
-  0%,100%{ box-shadow: 0 0 0 0 rgba(232,193,90,0.4); }
-  50%{ box-shadow: 0 0 0 16px rgba(232,193,90,0); }
-}
-.voice-text { font-size: 13px; color: var(--text2); text-align: center; }
-.voice-users { width: 100%; display: flex; flex-direction: column; gap: 6px; }
-.voice-user {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px; border-radius: 8px;
-  background: var(--bg3);
-}
-.voice-user-name { font-size: 12px; flex: 1; }
-.voice-indicator {
-  width: 20px; height: 20px; border-radius: 50%;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px;
-}
-.voice-indicator.talking { background: rgba(90,232,154,0.2); border-color: var(--green); color: var(--green); animation: mic-pulse 0.5s infinite; }
+.btn-voice{width:100%;padding:.65rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-voice:hover{border-color:var(--green);color:var(--green)}
+.btn-voice.active{background:rgba(6,214,160,.15);border-color:var(--green);color:var(--green)}
+.btn-voice.active:hover{background:rgba(6,214,160,.25)}
 
-/* Notification toast */
-#toast {
-  position: fixed; top: 70px; right: 20px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 13px;
-  z-index: 9999;
-  max-width: 280px;
-  transform: translateX(120%);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  pointer-events: none;
-}
-#toast.show { transform: translateX(0); }
-#toast.success { border-color: var(--green); color: var(--green); }
-#toast.error { border-color: var(--red); color: var(--red); }
-#toast.info { border-color: var(--accent); color: var(--accent); }
+/* CHAT INPUT */
+.chat-input-row{padding:1rem;border-top:1px solid var(--border);display:flex;gap:8px}
+.chat-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;outline:none;transition:border-color .2s;resize:none}
+.chat-input:focus{border-color:var(--accent2)}
+.chat-input::placeholder{color:var(--muted)}
+.btn-send{padding:.65rem 1rem;background:var(--accent2);border:none;border-radius:8px;color:#fff;font-size:.9rem;cursor:pointer;transition:opacity .2s}
+.btn-send:hover{opacity:.85}
 
-/* Admin setup panel */
-.admin-setup {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  display: none;
-}
-.admin-setup.visible { display: block; }
-.admin-setup h4 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 18px; letter-spacing: 1px;
-  color: var(--accent); margin-bottom: 12px;
-}
-.setup-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+/* JOIN MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);z-index:500;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;width:380px;max-width:90vw}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;margin-bottom:.25rem;color:var(--text)}
+.modal-sub{font-size:.85rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.6}
+.modal-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;margin-bottom:10px;transition:border-color .2s}
+.modal-input:focus{border-color:var(--accent)}
+.modal-input::placeholder{color:var(--muted)}
+.role-select{display:flex;gap:8px;margin-bottom:1.25rem}
+.role-opt{flex:1;padding:.65rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:.82rem;font-weight:600;cursor:pointer;text-align:center;transition:all .2s}
+.role-opt.selected.admin{background:rgba(230,57,70,.15);border-color:var(--accent);color:var(--accent)}
+.role-opt.selected.viewer{background:rgba(69,123,157,.15);border-color:var(--accent2);color:var(--accent2)}
+.btn-join{width:100%;padding:.8rem;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;transition:opacity .2s}
+.btn-join:hover{opacity:.85}
 
-/* Modal */
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(4px);
-  z-index: 500;
-  display: none; align-items: center; justify-content: center;
-}
-.modal-overlay.show { display: flex; }
-.modal {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 32px;
-  width: 90%; max-width: 480px;
-  display: flex; flex-direction: column; gap: 16px;
-}
-.modal h3 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 24px; letter-spacing: 2px; color: var(--accent);
-}
-.share-box {
-  display: flex; gap: 8px; align-items: center;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 14px;
-}
-.share-box span {
-  flex: 1; font-family: 'JetBrains Mono', monospace;
-  font-size: 13px; color: var(--text2);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.copy-btn {
-  background: var(--accent); border: none;
-  color: #000; padding: 6px 12px;
-  border-radius: 6px; font-size: 12px; font-weight: 600;
-  cursor: pointer; white-space: nowrap;
-}
-.close-btn {
-  background: transparent; border: 1px solid var(--border);
-  color: var(--text2); padding: 8px 20px;
-  border-radius: 8px; cursor: pointer; font-size: 13px;
-  align-self: flex-end; transition: all 0.2s;
-}
-.close-btn:hover { border-color: var(--red); color: var(--red); }
+/* VIEWERS LIST in chat tab */
+.viewers-list{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:8px}
+.viewer-item{display:flex;align-items:center;gap:10px;padding:.65rem .9rem;background:var(--card);border-radius:8px}
+.v-avatar{width:32px;height:32px;border-radius:8px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700}
+.v-name{font-size:.85rem;font-weight:500}
+.v-role{font-size:.68rem;font-family:'JetBrains Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.v-role.admin{color:var(--accent)}
+.v-role.viewer{color:var(--accent2)}
 
-/* Chunks loading indicator */
-.chunk-indicator {
-  display: none;
-  align-items: center; gap: 8px;
-  font-size: 12px; color: var(--text2);
-}
-.chunk-indicator.visible { display: flex; }
-.chunk-dots span {
-  display: inline-block; width: 5px; height: 5px;
-  background: var(--accent); border-radius: 50%;
-  animation: chunk 1.2s infinite;
-}
-.chunk-dots span:nth-child(2) { animation-delay: 0.2s; }
-.chunk-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes chunk { 0%,80%,100%{opacity:0.2;} 40%{opacity:1;} }
+/* hidden */
+.hidden{display:none!important}
 
-/* Loading */
-.loading-bar {
-  position: fixed; top: 0; left: 0; right: 0;
-  height: 2px; background: var(--bg2); z-index: 9999;
-}
-.loading-fill {
-  height: 100%; background: var(--accent);
-  width: 0; transition: width 0.3s;
-  border-radius: 2px;
-}
-
-@media (max-width: 768px) {
-  .lobby-grid { grid-template-columns: 1fr; }
-  .sidebar { width: 280px; }
-  .room-body { flex-direction: column; }
-  .sidebar { width: 100%; height: 300px; border-left: none; border-top: 1px solid var(--border); }
+@media(max-width:700px){
+  .app{grid-template-columns:1fr}
+  .chat-side{max-height:45vh}
+  .voice-section{display:none}
 }
 </style>
 </head>
 <body>
 
-<!-- Loading Bar -->
-<div class="loading-bar"><div class="loading-fill" id="load-fill"></div></div>
-
-<!-- Toast -->
-<div id="toast"></div>
-
-<!-- ═══ SPLASH ═══ -->
-<div id="splash" style="display:none;">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(232,193,90,0.06) 0%, transparent 70%);pointer-events:none;"></div>
-  <div class="splash-logo">CINEROOM</div>
-  <div class="splash-sub">Watch Together · Anywhere</div>
-  <p style="color:var(--text3);font-size:13px;max-width:320px;text-align:center;line-height:1.6;">
-    Create or join a room. Sync playback, chat, and voice call with your crew in real time.
-  </p>
-  <button class="btn-google" id="btn-google-login">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-    </svg>
-    Continue with Google
-  </button>
-  <p id="splash-err" style="color:var(--red);font-size:13px;display:none;"></p>
-</div>
-
-<!-- ═══ LOBBY ═══ -->
-<div id="lobby">
-  <div class="lobby-header">
-    <div class="logo-sm">CINEROOM</div>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div class="user-pill">
-        <img id="lobby-avatar" src="" alt="">
-        <span id="lobby-name"></span>
-      </div>
-      <button class="btn-sm" id="btn-logout">Sign out</button>
-    </div>
-  </div>
-
-  <div class="lobby-grid">
-    <!-- Create Room -->
-    <div class="lobby-card">
-      <h2>🎬 Create Room</h2>
-      <p>Start a new watch party. You'll be the admin — control playback and invite others.</p>
-      <input type="text" class="input-field" id="room-name-input" placeholder="Room name (optional)">
-      <button class="btn-primary" id="btn-create-room">Create Room</button>
-    </div>
-
-    <!-- Join by Code -->
-    <div class="lobby-card">
-      <h2>🔗 Join Room</h2>
-      <p>Enter a room code or paste the full invite link shared by the host.</p>
-      <input type="text" class="input-field" id="join-code-input" placeholder="Room code or invite link">
-      <button class="btn-primary" id="btn-join-room">Join Room</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ ROOM ═══ -->
-<div id="room" style="display:none;">
-
-  <!-- Header -->
-  <div class="room-header">
-    <div class="room-logo">CINEROOM</div>
-    <div class="room-id-badge" id="room-id-badge" title="Click to copy/share">— — — —</div>
-    <span class="badge-role" id="role-badge">Viewer</span>
-    <div class="header-spacer"></div>
-    <div class="viewer-count"><div class="dot-live"></div><span id="viewer-count-text">1 watching</span></div>
-    <button class="btn-sm" id="btn-share" style="border-color:var(--accent);color:var(--accent);">Share</button>
-    <button class="btn-sm" id="btn-leave">Leave</button>
-  </div>
-
-  <!-- Body -->
-  <div class="room-body">
-
-    <!-- Video Area -->
-    <div class="video-area" id="video-area">
-
-      <!-- Setup Panel (admin only) -->
-      <div class="video-setup" id="video-setup">
-        <div class="setup-title">Choose a Source</div>
-        <p style="color:var(--text2);font-size:13px;text-align:center;max-width:400px;">Select where to load the movie from. Only you (admin) can set the source.</p>
-
-        <div class="source-tabs" id="source-tabs">
-          <button class="tab-btn active" data-tab="url">🔗 URL</button>
-          <button class="tab-btn" data-tab="drive">📁 Google Drive</button>
-          <button class="tab-btn" data-tab="youtube">▶ YouTube / Embed</button>
-        </div>
-
-        <!-- URL Panel -->
-        <div class="source-panel active" id="panel-url">
-          <input type="text" class="input-field" id="url-input" placeholder="https://example.com/movie.mp4 or HLS/m3u8 URL">
-          <div class="chunk-indicator" id="chunk-indicator">
-            <div class="chunk-dots"><span></span><span></span><span></span></div>
-            Loading chunks... fast streaming enabled
-          </div>
-          <button class="btn-primary" id="btn-load-url">Load Video</button>
-        </div>
-
-        <!-- Drive Panel -->
-        <div class="source-panel" id="panel-drive">
-          <p style="color:var(--text2);font-size:12px;line-height:1.6;">
-            Paste your Google Drive file ID or shareable link. Make sure the file is shared publicly or with "Anyone with the link".
-          </p>
-          <input type="text" class="input-field" id="drive-input" placeholder="Drive file ID or share URL">
-          <button class="btn-primary" id="btn-load-drive">Load from Drive</button>
-        </div>
-
-        <!-- YouTube Panel -->
-        <div class="source-panel" id="panel-youtube">
-          <input type="text" class="input-field" id="yt-input" placeholder="YouTube URL or embed URL">
-          <button class="btn-primary" id="btn-load-yt">Load YouTube</button>
-        </div>
-
-        <!-- Multi-audio note -->
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;max-width:480px;">
-          <p style="font-size:12px;color:var(--text2);line-height:1.5;">
-            💡 <strong style="color:var(--accent);">Multi-audio:</strong> For .mkv files with multiple audio tracks, the video will detect available languages automatically. Admin can switch audio tracks for all viewers.
-          </p>
-        </div>
-      </div>
-
-      <!-- Waiting (non-admin) -->
-      <div id="viewer-waiting" style="display:none;position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg);">
-        <div style="font-size:48px;">🎬</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);letter-spacing:2px;">Waiting for host...</div>
-        <p style="color:var(--text2);font-size:13px;">The admin is setting up the video. Sit tight!</p>
-        <div class="chunk-dots"><span></span><span></span><span></span></div>
-      </div>
-
-      <!-- Video Wrapper -->
-      <div id="video-wrapper" style="display:none;">
-        <video id="main-video" playsinline crossorigin="anonymous"></video>
-        <iframe id="yt-player" style="display:none;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-        <iframe id="drive-player" style="display:none;"></iframe>
-
-        <!-- Controls -->
-        <div class="video-controls" id="video-controls">
-          <div class="progress-wrap" id="progress-wrap">
-            <div id="progress-bar" style="width:0%"></div>
-            <div class="progress-thumb"></div>
-          </div>
-          <div class="ctrl-row">
-            <button class="ctrl-btn big admin-only" id="ctrl-play" title="Play/Pause">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            </button>
-            <button class="ctrl-btn admin-only" id="ctrl-back10" title="Back 10s">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 5V1l-5 5 5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6h-2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/><text x="7" y="14.5" font-size="5" fill="currentColor">10</text></svg>
-            </button>
-            <button class="ctrl-btn admin-only" id="ctrl-fwd10" title="Forward 10s">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.01 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/><text x="9" y="14.5" font-size="5" fill="currentColor">10</text></svg>
-            </button>
-            <span class="time-display" id="time-display">0:00 / 0:00</span>
-            <div class="ctrl-spacer"></div>
-            <!-- Language selector (admin) -->
-            <select class="lang-select admin-only" id="lang-select" title="Audio Language"></select>
-            <div class="vol-wrap">
-              <button class="ctrl-btn" id="ctrl-mute" title="Mute">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-              </button>
-              <input type="range" class="vol-slider" id="vol-slider" min="0" max="100" value="80">
-            </div>
-            <button class="ctrl-btn" id="ctrl-fullscreen" title="Fullscreen">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="sidebar-tabs">
-        <button class="stab active" data-stab="chat"><span class="stab-icon">💬</span>Chat</button>
-        <button class="stab" data-stab="viewers"><span class="stab-icon">👥</span>People</button>
-        <button class="stab" data-stab="voice"><span class="stab-icon">🎙</span>Voice</button>
-      </div>
-
-      <!-- Chat Panel -->
-      <div class="sidebar-panel active" id="sp-chat">
-        <div class="chat-messages" id="chat-messages"></div>
-        <div class="chat-input-wrap">
-          <textarea class="chat-input" id="chat-input" placeholder="Say something..." rows="1"></textarea>
-          <button class="send-btn" id="send-btn">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Viewers Panel -->
-      <div class="sidebar-panel" id="sp-viewers">
-        <div class="viewers-list" id="viewers-list"></div>
-      </div>
-
-      <!-- Voice Panel -->
-      <div class="sidebar-panel" id="sp-voice">
-        <div class="voice-panel">
-          <button class="mic-btn" id="mic-btn">🎙</button>
-          <div class="voice-text" id="voice-text">Click to unmute your mic</div>
-          <div class="voice-users" id="voice-users-list"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Share Modal -->
-<div class="modal-overlay" id="share-modal">
+<!-- JOIN MODAL -->
+<div class="modal-overlay" id="joinModal">
   <div class="modal">
-    <h3>🔗 Share Room</h3>
-    <p style="color:var(--text2);font-size:13px;">Share this link or code with friends to join your room.</p>
-    <div>
-      <label style="font-size:11px;color:var(--text3);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:1px;">Room Code</label>
-      <div class="share-box">
-        <span id="share-code"></span>
-        <button class="copy-btn" onclick="copyText('share-code')">Copy</button>
-      </div>
+    <div class="modal-title">CINESYNC</div>
+    <div class="modal-sub">একসাথে মুভি দেখো। Admin ভিডিও কন্ট্রোল করে, সবাই একই সময়ে দেখে।</div>
+    <input class="modal-input" id="nameInput" placeholder="তোমার নাম লেখো..." maxlength="20"/>
+    <div class="role-select">
+      <div class="role-opt admin selected" id="roleAdmin" onclick="selectRole('admin')">🎬 Admin</div>
+      <div class="role-opt viewer" id="roleViewer" onclick="selectRole('viewer')">👁 Viewer</div>
     </div>
-    <div>
-      <label style="font-size:11px;color:var(--text3);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:1px;">Invite Link</label>
-      <div class="share-box">
-        <span id="share-link" style="font-size:11px;"></span>
-        <button class="copy-btn" onclick="copyText('share-link')">Copy</button>
-      </div>
+    <div id="adminKeyWrap" style="margin-bottom:10px">
+      <input class="modal-input" id="adminKey" placeholder="Admin পাসওয়ার্ড (ঐচ্ছিক)..." type="password" style="margin-bottom:0"/>
     </div>
-    <button class="close-btn" onclick="closeShareModal()">Close</button>
+    <button class="btn-join" onclick="joinRoom()">▶ রুমে যোগ দাও</button>
   </div>
 </div>
 
-<script>
-// ═══════════════════════════════════
-// GLOBALS
-// ═══════════════════════════════════
-let currentUser = null;
-let currentRoom = null;
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div>
+      <div class="logo-mark">CineSync</div>
+      <div class="logo-sub">Watch Party Engine</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="viewers-count"><div class="live-dot"></div><span id="viewerCountDisplay">0 দর্শক</span></div>
+    <div class="role-badge role-admin hidden" id="adminBadge">Admin</div>
+    <div class="role-badge role-viewer hidden" id="viewerBadge">Viewer</div>
+  </div>
+</header>
+
+<!-- APP -->
+<div class="app">
+  <!-- VIDEO SIDE -->
+  <div class="video-side">
+    <!-- URL bar (admin only) -->
+    <div class="url-bar hidden" id="urlBar">
+      <input class="url-input" id="urlInput" placeholder="ভিডিও লিংক পেস্ট করুন (MP4, YouTube, Google Drive)..." />
+      <button class="btn-go" onclick="adminLoadVideo()">▶ লোড</button>
+    </div>
+
+    <!-- Player -->
+    <div class="player-container" id="playerContainer">
+      <div class="idle-screen" id="idleScreen">
+        <div class="idle-icon">🎬</div>
+        <div class="idle-title">কোনো ভিডিও নেই</div>
+        <div class="idle-sub" id="idleSubText">Admin ভিডিও লোড করলে শুরু হবে...</div>
+      </div>
+      <video id="videoEl" controls></video>
+      <iframe id="ytFrame" style="width:100%;max-height:60vh;border:none;display:none" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+      <div class="sync-overlay" id="syncOverlay">
+        <div class="sync-spinner"></div>
+        <div class="sync-text">সিঙ্ক হচ্ছে...</div>
+      </div>
+    </div>
+
+    <!-- Admin controls -->
+    <div class="controls-bar hidden" id="adminControls">
+      <button class="ctrl-btn play-pause" id="playPauseBtn" onclick="adminPlayPause()" title="Play/Pause">▶</button>
+      <button class="ctrl-btn" onclick="adminSeek(-10)" title="-10s">⏮</button>
+      <button class="ctrl-btn" onclick="adminSeek(10)" title="+10s">⏭</button>
+      <div class="seek-wrap">
+        <span class="time-display" id="currentTimeDisplay">0:00</span>
+        <div class="seek-track" id="seekTrack" onclick="adminSeekTo(event)">
+          <div class="seek-filled" id="seekFilled" style="width:0%"></div>
+          <div class="seek-thumb" id="seekThumb"></div>
+        </div>
+        <span class="time-display" id="durationDisplay">0:00</span>
+      </div>
+      <div class="vol-wrap">
+        <span class="vol-icon" onclick="toggleMute()">🔊</span>
+        <input type="range" class="vol-slider" id="volSlider" min="0" max="1" step="0.05" value="1" oninput="setVolume(this.value)">
+      </div>
+    </div>
+
+    <!-- Viewer sync bar -->
+    <div class="viewer-bar hidden" id="viewerBar">
+      <div class="sync-status">
+        <div class="sync-indicator synced" id="syncIndicator"></div>
+        <span id="syncStatusText">Admin এর সাথে সিঙ্ক হচ্ছে...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT SIDE -->
+  <div class="chat-side">
+    <div class="chat-header">
+      <div class="chat-title">লাইভ চ্যাট</div>
+      <div class="chat-tabs">
+        <button class="tab-btn active" onclick="switchTab('chat',this)">💬 চ্যাট</button>
+        <button class="tab-btn" onclick="switchTab('viewers',this)">👥 সদস্য</button>
+      </div>
+    </div>
+
+    <!-- Chat tab -->
+    <div id="chatTab" style="display:flex;flex-direction:column;flex:1;min-height:0">
+      <div class="messages" id="messagesBox"></div>
+      <!-- Voice -->
+      <div class="voice-section">
+        <div class="voice-header">// ভয়েস চ্যাট</div>
+        <div class="voice-users" id="voiceUsers">
+          <span class="voice-empty">কেউ কথা বলছে না...</span>
+        </div>
+        <button class="btn-voice" id="voiceBtn" onclick="toggleVoice()">🎤 ভয়েস চ্যাট চালু করো</button>
+      </div>
+      <!-- Input -->
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chatInput" placeholder="মেসেজ লেখো..." rows="1" onkeydown="chatKeydown(event)"></textarea>
+        <button class="btn-send" onclick="sendChat()">➤</button>
+      </div>
+    </div>
+
+    <!-- Viewers tab -->
+    <div id="viewersTab" class="viewers-list hidden"></div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, push, serverTimestamp, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDQw9ksYuDM451LjtHpnUPoRx4Mh9zEOOE",
+  authDomain: "movie-960db.firebaseapp.com",
+  databaseURL: "https://movie-960db-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "movie-960db",
+  storageBucket: "movie-960db.firebasestorage.app",
+  messagingSenderId: "169250488305",
+  appId: "1:169250488305:web:cc71dc93d3a3f698d20e50"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// State
+let myName = '';
+let myRole = 'viewer';
+let myId = 'user_' + Math.random().toString(36).slice(2,9);
 let isAdmin = false;
+let videoEl = document.getElementById('videoEl');
+let ytFrame = document.getElementById('ytFrame');
 let isSyncing = false;
-let syncTimeout = null;
-let mediaSource = null;
-let sourceBuffer = null;
-let chunkQueue = [];
-let isBuffering = false;
-let localStream = null;
+let isVoiceActive = false;
+let voiceStream = null;
 let peerConnections = {};
-let micActive = false;
-let roomListeners = [];
-let videoType = 'html5'; // 'html5' | 'youtube' | 'drive'
-let audioTracks = [];
+let currentVideoUrl = '';
+let lastKnownTime = 0;
+let isMuted = false;
+let ADMIN_PASS = 'admin123';
 
-const $ = id => document.getElementById(id);
-  function enterLobby() {
-  $('splash').style.display = 'none';
-  $('lobby').style.display = 'block';
-  $('lobby-avatar').src = currentUser.photoURL || '';
-  $('lobby-name').textContent = currentUser.displayName || currentUser.email;
-}
-const firebase = () => window._firebase;
+// Avatars
+const AVATARS = ['🎬','🍿','🎥','🎞','🌟','🎭','🦁','🐯','🦊','🐸','🌈','⚡'];
+function getAvatar(name){ return AVATARS[name.charCodeAt(0) % AVATARS.length]; }
 
-// ═══════════════════════════════════
-// TOAST
-// ═══════════════════════════════════
-function toast(msg, type='info', dur=3000) {
-  const t = $('toast');
-  t.textContent = msg;
-  t.className = `show ${type}`;
-  clearTimeout(t._to);
-  t._to = setTimeout(() => { t.className = ''; }, dur);
-}
+// ====== JOIN ======
+window.selectRole = function(role){
+  myRole = role;
+  document.getElementById('roleAdmin').classList.toggle('selected', role==='admin');
+  document.getElementById('roleAdmin').classList.toggle('admin', role==='admin');
+  document.getElementById('roleViewer').classList.toggle('selected', role==='viewer');
+  document.getElementById('roleViewer').classList.toggle('viewer', role==='viewer');
+  document.getElementById('adminKeyWrap').style.display = role==='admin' ? 'block' : 'none';
+};
+selectRole('admin'); // default show
 
-function copyText(id) {
-  const el = $(id);
-  navigator.clipboard.writeText(el.textContent).then(() => toast('Copied!', 'success'));
-}
-
-// ═══════════════════════════════════
-// AUTH
-// ═══════════════════════════════════
-window.addEventListener('firebase-ready', () => {
-  const { auth, onAuthStateChanged: _ } = firebase();
-  // Use onValue-style manually
-  auth.onAuthStateChanged = auth.onAuthStateChanged || function(){};
-
-  $('btn-google-login').addEventListener('click', async () => {
-    const { auth, signInWithPopup, provider } = firebase();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      currentUser = result.user;
-      enterLobby();
-    } catch(e) {
-      $('splash-err').textContent = e.message;
-      $('splash-err').style.display = 'block';
-    }
-  });
-
-  // Check URL for room code
-  const urlParams = new URLSearchParams(window.location.search);
-  const roomCode = urlParams.get('room');
-  if (roomCode) {
-    $('join-code-input') && ($('join-code-input').value = roomCode);
+window.joinRoom = function(){
+  const name = document.getElementById('nameInput').value.trim();
+  if(!name){ document.getElementById('nameInput').style.borderColor='var(--accent)'; return; }
+  
+  if(myRole === 'admin'){
+    const key = document.getElementById('adminKey').value.trim();
+    if(key && key !== ADMIN_PASS){ alert('ভুল পাসওয়ার্ড!'); return; }
+    isAdmin = true;
   }
 
-  // Auto-login check
-  const { onAuthStateChanged } = firebase();
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      currentUser = user;
-      enterLobby();
-      if (roomCode) {
-        setTimeout(() => joinRoom(roomCode), 500);
-      }
-    } else {
-      $('splash').style.display = 'flex';
-      $('lobby').style.display = 'none';
-      $('room').style.display = 'none';
-    }
-  });
+  myName = name;
+  document.getElementById('joinModal').style.display = 'none';
+  initUI();
+  connectFirebase();
+};
 
-
-$('btn-logout') && document.addEventListener('DOMContentLoaded', () => {
-  $('btn-logout').addEventListener('click', async () => {
-    const { auth, signOut } = firebase();
-    await signOut(auth);
-    currentUser = null;
-    $('lobby').style.display = 'none';
-    $('splash').style.display = 'flex';
-  });
-});
-
-// Patch for late DOM
-window.addEventListener('firebase-ready', () => {
-  setTimeout(() => {
-    $('btn-logout') && $('btn-logout').addEventListener('click', async () => {
-      const { auth, signOut } = firebase();
-      await signOut(auth);
-      window.location.reload();
-    });
-  }, 100);
-});
-
-// ═══════════════════════════════════
-// ROOM CREATION / JOINING
-// ═══════════════════════════════════
-function genRoomCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({length: 6}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
-}
-
-async function createRoom() {
-  if (!currentUser) return;
-  const { db, ref, set, serverTimestamp } = firebase();
-  const name = $('room-name-input').value.trim() || `${currentUser.displayName?.split(' ')[0]}'s Room`;
-  const code = genRoomCode();
-
-  showLoader(true);
-  try {
-    await set(ref(db, `rooms/${code}`), {
-      code,
-      name,
-      adminUid: currentUser.uid,
-      created: Date.now(),
-      video: { type: null, src: null, playing: false, currentTime: 0, ts: Date.now() },
-      audioTrack: 0,
-    });
-    await joinRoom(code, true);
-  } catch(e) {
-    toast('Failed to create room: ' + e.message, 'error');
-  } finally {
-    showLoader(false);
-  }
-}
-
-async function joinRoom(code, asAdmin = false) {
-  if (!currentUser) return;
-  code = code.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
-  if (!code) return toast('Invalid room code', 'error');
-
-  const { db, ref, get, set } = firebase();
-  showLoader(true);
-  try {
-    const snap = await get(ref(db, `rooms/${code}`));
-    if (!snap.exists()) return toast('Room not found', 'error');
-
-    const roomData = snap.val();
-    currentRoom = code;
-    isAdmin = asAdmin || roomData.adminUid === currentUser.uid;
-
-    // Register presence
-    await set(ref(db, `rooms/${code}/viewers/${currentUser.uid}`), {
-      uid: currentUser.uid,
-      name: currentUser.displayName,
-      photo: currentUser.photoURL,
-      joined: Date.now(),
-      isAdmin: isAdmin,
-    });
-
-    // Cleanup on exit
-    window.addEventListener('beforeunload', () => {
-      const { db, ref, set } = firebase();
-      set(ref(db, `rooms/${code}/viewers/${currentUser.uid}`), null);
-    });
-
-    enterRoom(roomData);
-  } catch(e) {
-    toast('Error: ' + e.message, 'error');
-  } finally {
-    showLoader(false);
-  }
-}
-
-// ═══════════════════════════════════
-// ENTER ROOM UI
-// ═══════════════════════════════════
-function enterRoom(roomData) {
-  $('lobby').style.display = 'none';
-  $('room').style.display = 'flex';
-
-  // Header
-  $('room-id-badge').textContent = currentRoom;
-  $('room-id-badge').addEventListener('click', openShareModal);
-  $('role-badge').textContent = isAdmin ? 'Admin' : 'Viewer';
-  $('role-badge').className = 'badge-role ' + (isAdmin ? 'badge-admin' : 'badge-viewer');
-
-  // Show admin controls
-  document.querySelectorAll('.admin-only').forEach(el => {
-    el.style.display = isAdmin ? '' : 'none';
-  });
-
-  // Setup panel visibility
-  if (isAdmin) {
-    $('video-setup').style.display = 'flex';
-    $('viewer-waiting').style.display = 'none';
+function initUI(){
+  if(isAdmin){
+    document.getElementById('adminBadge').classList.remove('hidden');
+    document.getElementById('urlBar').classList.remove('hidden');
+    document.getElementById('adminControls').classList.remove('hidden');
+    document.getElementById('idleSubText').textContent = 'উপরে লিংক পেস্ট করে লোড করুন...';
   } else {
-    $('video-setup').style.display = 'none';
-    $('viewer-waiting').style.display = 'flex';
-    // If video already loaded
-    if (roomData.video && roomData.video.src) {
-      handleVideoSync(roomData.video);
-    }
+    document.getElementById('viewerBadge').classList.remove('hidden');
+    document.getElementById('viewerBar').classList.remove('hidden');
   }
-
-  // Update window URL
-  const url = new URL(window.location);
-  url.searchParams.set('room', currentRoom);
-  history.replaceState({}, '', url);
-
-  // Start listeners
-  startRoomListeners();
+  addSystemMsg(myName + ' রুমে যোগ দিলেন 🎉');
 }
 
-// ═══════════════════════════════════
-// FIREBASE LISTENERS
-// ═══════════════════════════════════
-function startRoomListeners() {
-  const { db, ref, onValue } = firebase();
+// ====== FIREBASE CONNECT ======
+function connectFirebase(){
+  // Presence
+  const presenceRef = ref(db, `room/users/${myId}`);
+  set(presenceRef, { name: myName, role: isAdmin ? 'admin' : 'viewer', joinedAt: Date.now() });
+  onDisconnect(presenceRef).remove();
 
-  // Video sync
-  const videoRef = ref(db, `rooms/${currentRoom}/video`);
-  const unsubVideo = onValue(videoRef, snap => {
-    if (!snap.exists()) return;
-    const data = snap.val();
-    if (!isAdmin) handleVideoSync(data);
-    else if (data.src && !$('video-wrapper').style.display.includes('none') === false) {
-      // Admin: just make sure video is shown
+  // Watch users
+  onValue(ref(db, 'room/users'), snap => {
+    const users = snap.val() || {};
+    renderViewers(users);
+    const count = Object.keys(users).length;
+    document.getElementById('viewerCountDisplay').textContent = count + ' দর্শক';
+  });
+
+  // Watch video state (non-admin syncs)
+  onValue(ref(db, 'room/videoState'), snap => {
+    const state = snap.val();
+    if(!state) return;
+    
+    if(!isAdmin){
+      syncVideoState(state);
+    }
+    
+    // Load video if URL changed
+    if(state.url && state.url !== currentVideoUrl){
+      currentVideoUrl = state.url;
+      loadVideoUrl(state.url, state.isYT);
     }
   });
-  roomListeners.push(() => { /* off not needed for cleanup here */ });
 
-  // Chat
-  const chatRef = ref(db, `rooms/${currentRoom}/chat`);
-  onValue(chatRef, snap => {
-    if (!snap.exists()) return;
+  // Watch chat
+  onValue(ref(db, 'room/chat'), snap => {
     const msgs = snap.val();
-    renderChat(msgs);
-  });
-
-  // Viewers
-  const viewersRef = ref(db, `rooms/${currentRoom}/viewers`);
-  onValue(viewersRef, snap => {
-    const viewers = snap.exists() ? snap.val() : {};
-    renderViewers(viewers);
-    $('viewer-count-text').textContent = Object.keys(viewers).length + ' watching';
-  });
-
-  // Audio track
-  const audioRef = ref(db, `rooms/${currentRoom}/audioTrack`);
-  onValue(audioRef, snap => {
-    if (snap.exists() && !isAdmin) {
-      const idx = snap.val();
-      setAudioTrack(idx);
-    }
-  });
-}
-
-// ═══════════════════════════════════
-// VIDEO LOADING
-// ═══════════════════════════════════
-$('btn-load-url') && document.addEventListener('DOMContentLoaded', setupVideoLoaders);
-window.addEventListener('firebase-ready', () => setTimeout(setupVideoLoaders, 200));
-
-function setupVideoLoaders() {
-  $('btn-load-url') && $('btn-load-url').addEventListener('click', loadURL);
-  $('btn-load-drive') && $('btn-load-drive').addEventListener('click', loadDrive);
-  $('btn-load-yt') && $('btn-load-yt').addEventListener('click', loadYouTube);
-
-  // Source tabs
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.source-panel').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      $('panel-' + btn.dataset.tab).classList.add('active');
-    });
-  });
-
-  // Sidebar tabs
-  document.querySelectorAll('.stab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.sidebar-panel').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      $('sp-' + btn.dataset.stab).classList.add('active');
-    });
-  });
-
-  // Video controls
-  setupVideoControls();
-
-  // Chat
-  setupChat();
-
-  // Mic
-  $('mic-btn') && $('mic-btn').addEventListener('click', toggleMic);
-
-  // Share / Leave
-  $('btn-share') && $('btn-share').addEventListener('click', openShareModal);
-  $('btn-leave') && $('btn-leave').addEventListener('click', leaveRoom);
-  $('room-id-badge') && $('room-id-badge').addEventListener('click', openShareModal);
-}
-
-async function loadURL() {
-  let url = $('url-input').value.trim();
-  if (!url) return toast('Please enter a URL', 'error');
-
-  $('chunk-indicator').classList.add('visible');
-  videoType = 'html5';
-
-  // Try to use MediaSource for chunked loading
-  const video = $('main-video');
-  if (url.endsWith('.m3u8') || url.includes('m3u8')) {
-    // HLS
-    if (window.Hls && Hls.isSupported()) {
-      const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
-      hls.loadSource(url);
-      hls.attachMedia(video);
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = url;
-    } else {
-      toast('HLS not supported in this browser', 'error');
-      return;
-    }
-  } else {
-    // Direct MP4/MKV with chunk loading simulation
-    video.src = url;
-    video.preload = 'auto';
-  }
-
-  video.oncanplay = () => {
-    $('chunk-indicator').classList.remove('visible');
-    detectAudioTracks();
-  };
-
-  showVideoWrapper('html5');
-  pushVideoState({ type: 'html5', src: url, playing: false, currentTime: 0 });
-  toast('Video loaded!', 'success');
-  addSysMsg('Admin loaded a new video');
-}
-
-async function loadDrive() {
-  let input = $('drive-input').value.trim();
-  if (!input) return toast('Please enter a Drive URL or ID', 'error');
-
-  // Extract file ID
-  let fileId = input;
-  const match = input.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (match) fileId = match[1];
-  else if (input.match(/id=([a-zA-Z0-9_-]+)/)) fileId = input.match(/id=([a-zA-Z0-9_-]+)/)[1];
-
-  const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-  videoType = 'drive';
-  $('drive-player').src = embedUrl;
-  showVideoWrapper('drive');
-  pushVideoState({ type: 'drive', src: embedUrl, playing: false, currentTime: 0 });
-  toast('Google Drive video loaded!', 'success');
-  addSysMsg('Admin loaded from Google Drive');
-}
-
-async function loadYouTube() {
-  let input = $('yt-input').value.trim();
-  if (!input) return toast('Please enter a YouTube URL', 'error');
-
-  let videoId = '';
-  const patterns = [
-    /youtube\.com\/watch\?v=([^&]+)/,
-    /youtu\.be\/([^?]+)/,
-    /youtube\.com\/embed\/([^?]+)/,
-  ];
-  for (const p of patterns) {
-    const m = input.match(p);
-    if (m) { videoId = m[1]; break; }
-  }
-
-  const embedUrl = videoId
-    ? `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`
-    : input; // use as-is if already embed
-
-  videoType = 'youtube';
-  $('yt-player').src = embedUrl;
-  showVideoWrapper('youtube');
-  pushVideoState({ type: 'youtube', src: embedUrl, playing: false, currentTime: 0 });
-  toast('YouTube loaded!', 'success');
-  addSysMsg('Admin loaded a YouTube video');
-}
-
-function showVideoWrapper(type) {
-  $('video-setup').style.display = 'none';
-  $('viewer-waiting').style.display = 'none';
-  $('video-wrapper').style.display = 'block';
-
-  $('main-video').style.display = type === 'html5' ? 'block' : 'none';
-  $('yt-player').style.display = type === 'youtube' ? 'block' : 'none';
-  $('drive-player').style.display = type === 'drive' ? 'block' : 'none';
-}
-
-// ═══════════════════════════════════
-// VIDEO CONTROLS
-// ═══════════════════════════════════
-function setupVideoControls() {
-  const video = $('main-video');
-  if (!video) return;
-
-  $('ctrl-play') && $('ctrl-play').addEventListener('click', togglePlay);
-  $('ctrl-back10') && $('ctrl-back10').addEventListener('click', () => seekRelative(-10));
-  $('ctrl-fwd10') && $('ctrl-fwd10').addEventListener('click', () => seekRelative(10));
-  $('ctrl-fullscreen') && $('ctrl-fullscreen').addEventListener('click', toggleFullscreen);
-  $('ctrl-mute') && $('ctrl-mute').addEventListener('click', toggleMute);
-  $('vol-slider') && $('vol-slider').addEventListener('input', e => {
-    video.volume = e.target.value / 100;
-  });
-
-  // Progress bar
-  const progressWrap = $('progress-wrap');
-  progressWrap && progressWrap.addEventListener('click', e => {
-    if (!isAdmin) return;
-    const rect = progressWrap.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    video.currentTime = pct * video.duration;
-    pushVideoState({ currentTime: video.currentTime });
-  });
-
-  // Timeupdate
-  video.addEventListener('timeupdate', () => {
-    if (!video.duration) return;
-    const pct = (video.currentTime / video.duration) * 100;
-    $('progress-bar').style.width = pct + '%';
-    $('time-display').textContent = `${fmtTime(video.currentTime)} / ${fmtTime(video.duration)}`;
-
-    // Sync every 5 seconds if admin and playing
-    if (isAdmin && !video.paused) {
-      clearTimeout(syncTimeout);
-      syncTimeout = setTimeout(() => {
-        pushVideoState({ currentTime: video.currentTime, playing: !video.paused });
-      }, 5000);
-    }
-  });
-
-  // Language select
-  $('lang-select') && $('lang-select').addEventListener('change', e => {
-    if (!isAdmin) return;
-    const idx = parseInt(e.target.value);
-    setAudioTrack(idx);
-    const { db, ref, set } = firebase();
-    set(ref(db, `rooms/${currentRoom}/audioTrack`), idx);
-    toast('Audio track changed', 'success');
-  });
-}
-
-function togglePlay() {
-  if (!isAdmin) return;
-  const video = $('main-video');
-  if (video.paused) {
-    video.play().catch(()=>{});
-    updatePlayBtn(true);
-    pushVideoState({ playing: true, currentTime: video.currentTime });
-  } else {
-    video.pause();
-    updatePlayBtn(false);
-    pushVideoState({ playing: false, currentTime: video.currentTime });
-  }
-}
-
-function updatePlayBtn(playing) {
-  const btn = $('ctrl-play');
-  if (!btn) return;
-  btn.innerHTML = playing
-    ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
-    : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-}
-
-function seekRelative(secs) {
-  if (!isAdmin) return;
-  const video = $('main-video');
-  video.currentTime = Math.max(0, video.currentTime + secs);
-  pushVideoState({ currentTime: video.currentTime });
-}
-
-function toggleFullscreen() {
-  const wrapper = $('video-wrapper');
-  if (!document.fullscreenElement) {
-    wrapper.requestFullscreen().catch(()=>{});
-  } else {
-    document.exitFullscreen();
-  }
-}
-
-function toggleMute() {
-  const video = $('main-video');
-  video.muted = !video.muted;
-  $('ctrl-mute').style.opacity = video.muted ? '0.4' : '1';
-}
-
-function fmtTime(s) {
-  if (!s || isNaN(s)) return '0:00';
-  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
-  return `${m}:${sec.toString().padStart(2,'0')}`;
-}
-
-// ═══════════════════════════════════
-// FIREBASE VIDEO SYNC
-// ═══════════════════════════════════
-async function pushVideoState(patch) {
-  if (!currentRoom || !isAdmin) return;
-  const { db, ref, get, set } = firebase();
-  const vidRef = ref(db, `rooms/${currentRoom}/video`);
-  const snap = await get(vidRef);
-  const current = snap.exists() ? snap.val() : {};
-  await set(vidRef, { ...current, ...patch, ts: Date.now() });
-}
-
-function handleVideoSync(data) {
-  if (!data || !data.src) return;
-  const video = $('main-video');
-
-  if (data.type === 'html5') {
-    if (video.src !== data.src) {
-      video.src = data.src;
-      video.load();
-      video.oncanplay = () => {
-        showVideoWrapper('html5');
-        const elapsed = data.playing ? (Date.now() - data.ts) / 1000 : 0;
-        video.currentTime = (data.currentTime || 0) + elapsed;
-        if (data.playing) video.play().catch(() => {});
-        detectAudioTracks();
-      };
-    } else {
-      const elapsed = data.playing ? (Date.now() - data.ts) / 1000 : 0;
-      const expectedTime = (data.currentTime || 0) + elapsed;
-      if (Math.abs(video.currentTime - expectedTime) > 2) {
-        video.currentTime = expectedTime;
+    if(!msgs) return;
+    const box = document.getElementById('messagesBox');
+    const keys = Object.keys(msgs).sort();
+    // Only add new ones
+    const existingIds = new Set([...box.querySelectorAll('[data-msgid]')].map(el=>el.dataset.msgid));
+    keys.forEach(k => {
+      if(!existingIds.has(k)){
+        const m = msgs[k];
+        appendChatMsg(m, k);
       }
-      if (data.playing && video.paused) video.play().catch(() => {});
-      else if (!data.playing && !video.paused) video.pause();
-    }
-  } else if (data.type === 'youtube') {
-    if ($('yt-player').src !== data.src) $('yt-player').src = data.src;
-    showVideoWrapper('youtube');
-  } else if (data.type === 'drive') {
-    if ($('drive-player').src !== data.src) $('drive-player').src = data.src;
-    showVideoWrapper('drive');
-  }
-}
-
-  // Sync time (allow 2s drift)
-  if (data.type === 'html5' && !isAdmin) {
-    const now = Date.now();
-    const elapsed = data.playing ? (now - data.ts) / 1000 : 0;
-    const expectedTime = (data.currentTime || 0) + elapsed;
-    if (Math.abs(video.currentTime - expectedTime) > 2) {
-      video.currentTime = expectedTime;
-    }
-    if (data.playing && video.paused) {
-      video.play().catch(()=>{});
-      updatePlayBtn(true);
-    } else if (!data.playing && !video.paused) {
-      video.pause();
-      updatePlayBtn(false);
-    }
-  }
-}
-
-// ═══════════════════════════════════
-// MULTI-AUDIO TRACK
-// ═══════════════════════════════════
-function detectAudioTracks() {
-  const video = $('main-video');
-  const sel = $('lang-select');
-  if (!sel) return;
-
-  // HTML5 VideoTrackList
-  if (video.audioTracks && video.audioTracks.length > 1) {
-    sel.innerHTML = '';
-    for (let i = 0; i < video.audioTracks.length; i++) {
-      const t = video.audioTracks[i];
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = t.label || t.language || `Track ${i+1}`;
-      sel.appendChild(opt);
-    }
-    sel.classList.add('visible');
-    if (isAdmin) sel.style.display = 'block';
-  } else {
-    sel.classList.remove('visible');
-  }
-}
-
-function setAudioTrack(idx) {
-  const video = $('main-video');
-  if (!video.audioTracks) return;
-  for (let i = 0; i < video.audioTracks.length; i++) {
-    video.audioTracks[i].enabled = (i === idx);
-  }
-  const sel = $('lang-select');
-  if (sel) sel.value = idx;
-}
-
-// ═══════════════════════════════════
-// CHAT
-// ═══════════════════════════════════
-function setupChat() {
-  const input = $('chat-input');
-  if (!input) return;
-
-  $('send-btn').addEventListener('click', sendMsg);
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMsg();
-    }
-  });
-}
-
-async function sendMsg() {
-  const input = $('chat-input');
-  const text = input.value.trim();
-  if (!text || !currentRoom || !currentUser) return;
-  input.value = '';
-
-  const { db, ref, push, serverTimestamp } = firebase();
-  await push(ref(db, `rooms/${currentRoom}/chat`), {
-    uid: currentUser.uid,
-    name: currentUser.displayName,
-    photo: currentUser.photoURL,
-    text,
-    ts: Date.now(),
-  });
-}
-
-function renderChat(msgs) {
-  const container = $('chat-messages');
-  const wasAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 80;
-
-  container.innerHTML = '';
-  const msgList = Object.values(msgs).sort((a,b) => a.ts - b.ts);
-
-  msgList.forEach(msg => {
-    if (msg.system) {
-      const div = document.createElement('div');
-      div.className = 'chat-sys';
-      div.textContent = msg.text;
-      container.appendChild(div);
-      return;
-    }
-    const isMe = msg.uid === currentUser?.uid;
-    const wrap = document.createElement('div');
-    wrap.className = 'chat-msg';
-    if (isMe) wrap.style.flexDirection = 'row-reverse';
-
-    const ava = document.createElement(msg.photo ? 'img' : 'div');
-    if (msg.photo) { ava.src = msg.photo; ava.className = 'chat-avatar'; }
-    else { ava.className = 'chat-avatar-txt'; ava.textContent = (msg.name||'?')[0].toUpperCase(); }
-
-    const content = document.createElement('div');
-    content.className = 'chat-content';
-    if (!isMe) {
-      const name = document.createElement('div');
-      name.className = 'chat-name';
-      name.textContent = msg.name || 'Anonymous';
-      content.appendChild(name);
-    }
-    const bubble = document.createElement('div');
-    bubble.className = 'chat-bubble';
-    if (isMe) { bubble.style.background = 'rgba(232,193,90,0.1)'; bubble.style.borderColor = 'rgba(232,193,90,0.3)'; }
-    bubble.textContent = msg.text;
-    content.appendChild(bubble);
-
-    wrap.appendChild(ava);
-    wrap.appendChild(content);
-    container.appendChild(wrap);
-  });
-
-  if (wasAtBottom) container.scrollTop = container.scrollHeight;
-}
-
-async function addSysMsg(text) {
-  if (!currentRoom) return;
-  const { db, ref, push } = firebase();
-  await push(ref(db, `rooms/${currentRoom}/chat`), {
-    system: true,
-    text,
-    ts: Date.now(),
-  });
-}
-
-// ═══════════════════════════════════
-// VIEWERS LIST
-// ═══════════════════════════════════
-function renderViewers(viewers) {
-  const container = $('viewers-list');
-  if (!container) return;
-  container.innerHTML = '';
-
-  Object.values(viewers).forEach(v => {
-    const item = document.createElement('div');
-    item.className = 'viewer-item';
-
-    const img = document.createElement('img');
-    img.src = v.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(v.name||'U')}&background=1e2535&color=e8c15a`;
-
-    const info = document.createElement('div');
-    info.className = 'viewer-info';
-    info.innerHTML = `<div class="viewer-name">${v.name || 'Anonymous'}</div>
-                      <div class="viewer-status">${v.isAdmin ? 'Admin' : 'Viewer'}</div>`;
-
-    item.appendChild(img);
-    item.appendChild(info);
-    if (v.isAdmin) {
-      const badge = document.createElement('span');
-      badge.className = 'viewer-badge-admin';
-      badge.textContent = 'HOST';
-      item.appendChild(badge);
-    }
-    container.appendChild(item);
-  });
-}
-
-// ═══════════════════════════════════
-// VOICE / MIC (WebRTC)
-// ═══════════════════════════════════
-async function toggleMic() {
-  if (!micActive) {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      micActive = true;
-      $('mic-btn').classList.add('active');
-      $('voice-text').textContent = 'Mic is ON — others can hear you';
-      toast('Mic on 🎙', 'success');
-      broadcastMicStatus(true);
-    } catch(e) {
-      toast('Mic access denied', 'error');
-    }
-  } else {
-    if (localStream) localStream.getTracks().forEach(t => t.stop());
-    localStream = null;
-    micActive = false;
-    $('mic-btn').classList.remove('active');
-    $('voice-text').textContent = 'Click to unmute your mic';
-    toast('Mic off', 'info');
-    broadcastMicStatus(false);
-  }
-}
-
-function broadcastMicStatus(active) {
-  if (!currentRoom || !currentUser) return;
-  const { db, ref, set } = firebase();
-  set(ref(db, `rooms/${currentRoom}/voice/${currentUser.uid}`), active ? {
-    uid: currentUser.uid,
-    name: currentUser.displayName,
-    talking: true,
-  } : null);
-}
-
-// ═══════════════════════════════════
-// SHARE MODAL
-// ═══════════════════════════════════
-function openShareModal() {
-  const url = `${location.origin}${location.pathname}?room=${currentRoom}`;
-  $('share-code').textContent = currentRoom;
-  $('share-link').textContent = url;
-  $('share-modal').classList.add('show');
-}
-function closeShareModal() { $('share-modal').classList.remove('show'); }
-
-// ═══════════════════════════════════
-// LEAVE
-// ═══════════════════════════════════
-async function leaveRoom() {
-  if (currentRoom && currentUser) {
-    const { db, ref, set } = firebase();
-    await set(ref(db, `rooms/${currentRoom}/viewers/${currentUser.uid}`), null);
-    if (micActive) broadcastMicStatus(false);
-  }
-  currentRoom = null;
-  isAdmin = false;
-  const url = new URL(window.location);
-  url.searchParams.delete('room');
-  history.replaceState({}, '', url);
-
-  $('room').style.display = 'none';
-  $('lobby').style.display = 'block';
-  // Reset video
-  $('main-video').src = '';
-  $('yt-player').src = '';
-  $('drive-player').src = '';
-  $('video-wrapper').style.display = 'none';
-  $('video-setup').style.display = 'flex';
-}
-
-// ═══════════════════════════════════
-// LOADER
-// ═══════════════════════════════════
-function showLoader(on) {
-  $('load-fill').style.width = on ? '70%' : '100%';
-  if (!on) setTimeout(() => { $('load-fill').style.width = '0%'; }, 400);
-}
-
-// ═══════════════════════════════════
-// LOBBY BUTTONS (late bind)
-// ═══════════════════════════════════
-window.addEventListener('firebase-ready', () => {
-  setTimeout(() => {
-    $('btn-create-room') && $('btn-create-room').addEventListener('click', createRoom);
-    $('btn-join-room') && $('btn-join-room').addEventListener('click', () => {
-      let val = $('join-code-input').value.trim();
-      // Parse if link
-      try {
-        const u = new URL(val);
-        val = u.searchParams.get('room') || val;
-      } catch {}
-      joinRoom(val);
     });
-  }, 300);
-});
+  });
+
+  // Watch voice users
+  onValue(ref(db, 'room/voice'), snap => {
+    const voices = snap.val() || {};
+    renderVoiceUsers(voices);
+  });
+}
+
+// ====== VIDEO STATE SYNC ======
+function pushVideoState(extra={}){
+  if(!isAdmin) return;
+  const state = {
+    url: currentVideoUrl,
+    isYT: ytFrame.style.display !== 'none',
+    playing: !videoEl.paused,
+    currentTime: videoEl.currentTime,
+    serverTime: Date.now(),
+    ...extra
+  };
+  set(ref(db,'room/videoState'), state);
+}
+
+function syncVideoState(state){
+  if(isAdmin) return;
+  if(ytFrame.style.display !== 'none') return; // YT handles itself
+  if(!videoEl.src) return;
+
+  // Calculate expected time accounting for server latency
+  const lag = (Date.now() - state.serverTime) / 1000;
+  const expectedTime = state.currentTime + (state.playing ? lag : 0);
+  const diff = Math.abs(videoEl.currentTime - expectedTime);
+
+  if(diff > 1.5){
+    isSyncing = true;
+    showSyncOverlay(true);
+    videoEl.currentTime = expectedTime;
+    setTimeout(()=>{ isSyncing=false; showSyncOverlay(false); }, 1500);
+  }
+
+  if(state.playing && videoEl.paused && !isSyncing){
+    videoEl.play().catch(()=>{});
+    updateSyncStatus(true);
+  } else if(!state.playing && !videoEl.paused){
+    videoEl.pause();
+    updateSyncStatus(true);
+  } else {
+    updateSyncStatus(diff < 2);
+  }
+}
+
+function showSyncOverlay(show){
+  document.getElementById('syncOverlay').classList.toggle('show', show);
+}
+
+function updateSyncStatus(synced){
+  const ind = document.getElementById('syncIndicator');
+  const txt = document.getElementById('syncStatusText');
+  ind.className = 'sync-indicator ' + (synced ? 'synced' : 'desynced');
+  txt.textContent = synced ? 'Admin এর সাথে সিঙ্ক হয়েছে ✓' : 'সিঙ্ক হচ্ছে...';
+}
+
+// ====== LOAD VIDEO ======
+window.adminLoadVideo = function(){
+  const url = document.getElementById('urlInput').value.trim();
+  if(!url){ return; }
+
+  if(url.includes('youtube.com') || url.includes('youtu.be')){
+    let videoId = '';
+    try{ const u=new URL(url); videoId=u.searchParams.get('v')||u.pathname.split('/').pop(); }catch(e){}
+    if(!videoId){ addSystemMsg('YouTube ID পাওয়া গেলো না', 'error'); return; }
+    currentVideoUrl = url;
+    loadVideoUrl(url, true);
+    set(ref(db,'room/videoState'),{ url, isYT:true, playing:true, currentTime:0, serverTime:Date.now() });
+    addSystemMsg('YouTube ভিডিও লোড হয়েছে 🎥');
+    return;
+  }
+
+  currentVideoUrl = url;
+  loadVideoUrl(url, false);
+  set(ref(db,'room/videoState'),{ url, isYT:false, playing:false, currentTime:0, serverTime:Date.now() });
+  addSystemMsg('ভিডিও লোড হয়েছে ▶');
+};
+
+function loadVideoUrl(url, isYT){
+  document.getElementById('idleScreen').style.display = 'none';
+  if(isYT){
+    let videoId = '';
+    try{ const u=new URL(url); videoId=u.searchParams.get('v')||u.pathname.split('/').pop(); }catch(e){}
+    videoEl.style.display = 'none';
+    ytFrame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
+    ytFrame.style.display = 'block';
+    document.getElementById('adminControls').classList.add('hidden');
+    if(isAdmin) addSystemMsg('YouTube: Admin controls সীমিত (YouTube API সীমাবদ্ধতা)', 'warn');
+  } else {
+    ytFrame.style.display = 'none';
+    ytFrame.src = '';
+    videoEl.src = url;
+    videoEl.style.display = 'block';
+    videoEl.load();
+    if(!isAdmin){ videoEl.play().catch(()=>{}); }
+
+    videoEl.ontimeupdate = () => {
+      updateSeekBar();
+      if(isAdmin) {
+        // push every 3 seconds
+        if(Math.floor(videoEl.currentTime) % 3 === 0 && Math.floor(videoEl.currentTime) !== Math.floor(lastKnownTime)){
+          lastKnownTime = videoEl.currentTime;
+          pushVideoState();
+        }
+      }
+    };
+    videoEl.onplay = () => { if(isAdmin){ document.getElementById('playPauseBtn').textContent='⏸'; pushVideoState(); } };
+    videoEl.onpause = () => { if(isAdmin){ document.getElementById('playPauseBtn').textContent='▶'; pushVideoState(); } };
+    videoEl.ondurationchange = () => {
+      document.getElementById('durationDisplay').textContent = formatTime(videoEl.duration);
+    };
+  }
+}
+
+// ====== ADMIN CONTROLS ======
+window.adminPlayPause = function(){
+  if(!isAdmin) return;
+  if(videoEl.paused){ videoEl.play(); } else { videoEl.pause(); }
+  pushVideoState();
+};
+
+window.adminSeek = function(delta){
+  if(!isAdmin) return;
+  videoEl.currentTime = Math.max(0, videoEl.currentTime + delta);
+  pushVideoState();
+};
+
+window.adminSeekTo = function(e){
+  if(!isAdmin) return;
+  const track = document.getElementById('seekTrack');
+  const rect = track.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  videoEl.currentTime = pct * (videoEl.duration || 0);
+  pushVideoState();
+};
+
+window.setVolume = function(v){ videoEl.volume = v; };
+window.toggleMute = function(){
+  isMuted = !isMuted;
+  videoEl.muted = isMuted;
+  document.querySelector('.vol-icon').textContent = isMuted ? '🔇' : '🔊';
+};
+
+function updateSeekBar(){
+  const dur = videoEl.duration || 0;
+  const ct = videoEl.currentTime || 0;
+  const pct = dur ? (ct/dur)*100 : 0;
+  document.getElementById('seekFilled').style.width = pct + '%';
+  document.getElementById('seekThumb').style.right = 'auto';
+  document.getElementById('seekThumb').style.left = pct + '%';
+  document.getElementById('currentTimeDisplay').textContent = formatTime(ct);
+}
+
+function formatTime(s){
+  if(isNaN(s)) return '0:00';
+  const m = Math.floor(s/60);
+  const sec = Math.floor(s%60);
+  return m + ':' + sec.toString().padStart(2,'0');
+}
+
+// ====== CHAT ======
+window.chatKeydown = function(e){
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
+};
+
+window.sendChat = function(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  const msgRef = ref(db,'room/chat');
+  push(msgRef,{ name:myName, role:isAdmin?'admin':'viewer', text, ts:Date.now() });
+};
+
+function appendChatMsg(m, id){
+  const box = document.getElementById('messagesBox');
+  const el = document.createElement('div');
+  el.className = 'msg';
+  el.dataset.msgid = id;
+  const avatar = getAvatar(m.name || '?');
+  el.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-body">
+      <div class="msg-name ${m.role==='admin'?'admin-name':'viewer-name'}">${escHtml(m.name)} ${m.role==='admin'?'👑':''}</div>
+      <div class="msg-text">${escHtml(m.text)}</div>
+    </div>`;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+function addSystemMsg(text){
+  const box = document.getElementById('messagesBox');
+  const el = document.createElement('div');
+  el.className = 'msg-system';
+  el.textContent = '— ' + text + ' —';
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ====== VIEWERS ======
+function renderViewers(users){
+  const tab = document.getElementById('viewersTab');
+  tab.innerHTML = '';
+  Object.values(users).forEach(u => {
+    const el = document.createElement('div');
+    el.className = 'viewer-item';
+    el.innerHTML = `
+      <div class="v-avatar">${getAvatar(u.name||'?')}</div>
+      <div>
+        <div class="v-name">${escHtml(u.name)}</div>
+        <div class="v-role ${u.role}">${u.role==='admin'?'Admin 👑':'Viewer'}</div>
+      </div>`;
+    tab.appendChild(el);
+  });
+}
+
+// ====== VOICE CHAT (WebRTC) ======
+window.toggleVoice = async function(){
+  if(!isVoiceActive){
+    try{
+      voiceStream = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+      isVoiceActive = true;
+      const btn = document.getElementById('voiceBtn');
+      btn.textContent = '🔴 ভয়েস বন্ধ করো';
+      btn.classList.add('active');
+      set(ref(db,`room/voice/${myId}`),{ name:myName, speaking:false });
+      onDisconnect(ref(db,`room/voice/${myId}`)).remove();
+
+      // Detect speaking
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      const src = ctx.createMediaStreamSource(voiceStream);
+      src.connect(analyser);
+      analyser.fftSize = 512;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      let speakingState = false;
+      setInterval(()=>{
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a,b)=>a+b,0)/data.length;
+        const isSpeaking = avg > 15;
+        if(isSpeaking !== speakingState){
+          speakingState = isSpeaking;
+          set(ref(db,`room/voice/${myId}/speaking`), isSpeaking);
+        }
+      },200);
+
+      addSystemMsg(myName + ' ভয়েসে যোগ দিলেন 🎤');
+    } catch(e){
+      alert('মাইক্রোফোন অ্যাক্সেস পাওয়া যায়নি: ' + e.message);
+    }
+  } else {
+    if(voiceStream) voiceStream.getTracks().forEach(t=>t.stop());
+    isVoiceActive = false;
+    const btn = document.getElementById('voiceBtn');
+    btn.textContent = '🎤 ভয়েস চ্যাট চালু করো';
+    btn.classList.remove('active');
+    remove(ref(db,`room/voice/${myId}`));
+    addSystemMsg(myName + ' ভয়েস থেকে বের হলেন');
+  }
+};
+
+function renderVoiceUsers(voices){
+  const box = document.getElementById('voiceUsers');
+  const keys = Object.keys(voices);
+  if(keys.length === 0){
+    box.innerHTML = '<span class="voice-empty">কেউ কথা বলছে না...</span>';
+    return;
+  }
+  box.innerHTML = '';
+  keys.forEach(k => {
+    const v = voices[k];
+    const el = document.createElement('div');
+    el.className = 'voice-user' + (v.speaking?' speaking':'');
+    el.innerHTML = `<div class="voice-dot"></div><span>${escHtml(v.name)}</span>`;
+    box.appendChild(el);
+  });
+}
+
+// ====== TABS ======
+window.switchTab = function(tab, btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('chatTab').style.display = tab==='chat' ? 'flex' : 'none';
+  document.getElementById('viewersTab').classList.toggle('hidden', tab!=='viewers');
+};
+
+// Sync poll every 5s for viewers
+setInterval(()=>{
+  if(!isAdmin && videoEl.src && !videoEl.paused){
+    // re-read latest state from Firebase to stay in sync
+  }
+}, 5000);
 </script>
 </body>
 </html>
