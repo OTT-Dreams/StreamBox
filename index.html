@@ -935,7 +935,7 @@ function setupListeners(){
 // ===== SYNC COMMANDS =====
 function sendSyncCmd(type, time){
   db.ref(`rooms/${roomCode}/syncCmd`).set({
-    type, time: time||0, ts: Date.now(), by: myId
+    type, time: time||0, ts: Date.now(), by: myId, _t: Date.now()
   });
 }
 
@@ -958,7 +958,7 @@ function handleSyncCmd(cmd){
     document.getElementById('syncStatus').style.color='var(--accent4)';
   } else if(cmd.type === 'seek'){
     video.currentTime = cmd.time;
-    video.pause();
+    // pause করবে না, শুধু সময় ঠিক করবে
     document.getElementById('syncStatus').textContent='⏪ SYNCED';
     document.getElementById('syncStatus').style.color='var(--accent)';
   }
@@ -1086,8 +1086,7 @@ function directStream(url,cType){
   showVideo();
   video.src=url;
   video.load();
-  if(isAdmin) video.pause();
-  else video.play().catch(()=>{});
+  video.pause();
 
   totalChunks=32;chunkStates=new Array(32).fill('empty');
   renderChunkBar();simulateFakeChunks();
@@ -1460,8 +1459,9 @@ setInterval(()=>{
   if(!isAdmin||!roomCode)return;
   const v=document.getElementById('videoEl');
   if(!v||!v.src||v.readyState < 2)return;
+  if(v.paused) return; // admin pause থাকলে periodic sync পাঠাবে না
   db.ref(`rooms/${roomCode}/syncCmd`).set({
-    type:v.paused?'pause':'play',
+    type:'play',
     time:v.currentTime,ts:Date.now(),by:myId,_t:Date.now()
   });
 },5000);
