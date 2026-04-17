@@ -3,319 +3,742 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CineSync — Watch Party</title>
+<title>StreamBox — Watch Party</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  --bg:#080810;
-  --surface:#0e0e1a;
-  --card:#14142a;
-  --card2:#1c1c34;
-  --accent:#e63946;
-  --accent2:#457b9d;
-  --gold:#ffd60a;
-  --text:#f1faee;
-  --muted:#6b7280;
-  --border:rgba(255,255,255,0.07);
-  --admin-glow:rgba(230,57,70,0.4);
-  --green:#06d6a0;
-  --orange:#fb8500;
+  --bg:#07070d;
+  --surface:#0f0f1a;
+  --surface2:#161625;
+  --surface3:#1e1e30;
+  --surface4:#252540;
+  --accent:#7c6aff;
+  --accent2:#ff5f7e;
+  --accent3:#00e5a0;
+  --accent4:#f5a623;
+  --text:#eeeeff;
+  --muted:#6b6b8a;
+  --border:rgba(124,106,255,0.18);
+  --border2:rgba(124,106,255,0.08);
+  --glow:rgba(124,106,255,0.3);
+  --chunk-active:#00e5a0;
+  --chunk-buffered:#7c6aff;
+  --chunk-empty:#1e1e30;
+  --chunk-loading:#ff5f7e;
+  --admin-color:#f5a623;
+  --r:14px;
 }
 
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body{
+  font-family:'Syne',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
 
-/* NOISE */
-body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.5}
+body::after{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(124,106,255,0.12),transparent);
+  pointer-events:none;z-index:0;
+}
 
-/* HEADER */
-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:rgba(8,8,16,.96);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100}
+/* ===== LOBBY SCREEN ===== */
+#lobbyScreen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:2rem;padding:2rem;position:relative;z-index:1;
+}
 
-.logo{display:flex;align-items:center;gap:10px}
-.logo-mark{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:2px;color:var(--accent);line-height:1}
-.logo-sub{font-size:.65rem;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:3px;text-transform:uppercase}
+.lobby-logo{
+  display:flex;align-items:center;gap:14px;margin-bottom:0.5rem;
+}
+.logo-mark{
+  width:52px;height:52px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:16px;display:flex;align-items:center;justify-content:center;
+  font-size:24px;box-shadow:0 0 30px var(--glow);
+}
+.lobby-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:3rem;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.lobby-sub{
+  font-family:'Space Mono',monospace;
+  font-size:0.72rem;color:var(--muted);letter-spacing:3px;
+  text-align:center;margin-top:-1.2rem;
+}
 
-.header-right{display:flex;align-items:center;gap:10px}
+.lobby-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:2rem;
+  width:100%;max-width:440px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
 
-.role-badge{font-family:'JetBrains Mono',monospace;font-size:.7rem;padding:4px 12px;border-radius:4px;text-transform:uppercase;letter-spacing:2px}
-.role-admin{background:rgba(230,57,70,.15);border:1px solid var(--accent);color:var(--accent)}
-.role-viewer{background:rgba(69,123,157,.15);border:1px solid var(--accent2);color:var(--accent2)}
+.lobby-tabs{
+  display:flex;gap:6px;margin-bottom:1.8rem;
+  background:var(--surface2);border-radius:10px;padding:4px;
+}
+.tab-btn{
+  flex:1;padding:0.55rem;border:none;border-radius:8px;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;
+  cursor:pointer;transition:all 0.2s;background:transparent;color:var(--muted);
+}
+.tab-btn.active{background:var(--accent);color:#fff;box-shadow:0 2px 12px var(--glow);}
 
-.viewers-count{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
-.live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:livePulse 1.5s ease-in-out infinite}
-@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(6,214,160,.5)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(6,214,160,0)}}
+.field-label{
+  font-family:'Space Mono',monospace;font-size:0.68rem;
+  color:var(--muted);letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:0.5rem;display:block;
+}
 
-/* LAYOUT */
-.app{display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 57px);gap:0}
+.field-input{
+  width:100%;padding:0.8rem 1rem;
+  background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:10px;color:var(--text);
+  font-family:'Space Mono',monospace;font-size:0.85rem;
+  outline:none;transition:border-color 0.2s,box-shadow 0.2s;
+  margin-bottom:1rem;
+}
+.field-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,106,255,0.15);}
+.field-input::placeholder{color:var(--muted);}
 
-/* MAIN VIDEO SIDE */
-.video-side{display:flex;flex-direction:column;border-right:1px solid var(--border)}
+.btn-primary{
+  width:100%;padding:0.85rem;
+  background:linear-gradient(135deg,var(--accent),#a855f7);
+  border:none;border-radius:12px;color:#fff;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;
+  cursor:pointer;letter-spacing:1px;
+  transition:transform 0.15s,opacity 0.2s,box-shadow 0.2s;
+  box-shadow:0 4px 20px var(--glow);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--glow);}
+.btn-primary:active{transform:scale(0.97);}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
 
-/* URL BAR (admin only) */
-.url-bar{padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--surface);display:flex;gap:10px}
-.url-bar.hidden{display:none}
-.url-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.7rem 1rem;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.8rem;outline:none;transition:border-color .2s}
-.url-input:focus{border-color:var(--accent)}
-.url-input::placeholder{color:var(--muted)}
-.btn-go{padding:.7rem 1.4rem;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;transition:opacity .2s,transform .1s;white-space:nowrap}
-.btn-go:hover{opacity:.85}
-.btn-go:active{transform:scale(.97)}
+.divider{
+  display:flex;align-items:center;gap:10px;margin:1rem 0;
+  font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);
+}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
 
-/* VIDEO PLAYER */
-.player-container{position:relative;background:#000;flex:1;min-height:300px;display:flex;align-items:center;justify-content:center}
-#videoEl{width:100%;max-height:60vh;display:none;background:#000}
+/* ===== MAIN APP ===== */
+#appScreen{display:none;min-height:100vh;flex-direction:column;}
+#appScreen.show{display:flex;}
 
-.idle-screen{text-align:center;color:var(--muted);padding:3rem}
-.idle-icon{font-size:4rem;margin-bottom:1rem;opacity:.3}
-.idle-title{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;color:var(--muted);margin-bottom:.5rem}
-.idle-sub{font-size:.85rem}
+/* Header */
+.app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.9rem 1.5rem;border-bottom:1px solid var(--border);
+  background:rgba(7,7,13,0.95);backdrop-filter:blur(20px);
+  position:sticky;top:0;z-index:200;flex-shrink:0;
+}
+.app-logo{display:flex;align-items:center;gap:10px;}
+.app-logo-icon{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.app-logo-text{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;}
+.app-logo-text span{color:var(--accent);}
 
-/* SYNC OVERLAY */
-.sync-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:50}
-.sync-overlay.show{display:flex}
-.sync-spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.sync-text{font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--muted)}
+.header-center{
+  display:flex;align-items:center;gap:10px;
+}
+.room-badge{
+  font-family:'Space Mono',monospace;font-size:0.72rem;
+  padding:4px 14px;border-radius:20px;
+  background:rgba(124,106,255,0.15);border:1px solid var(--border);
+  color:var(--accent);letter-spacing:1px;
+}
+.viewers-badge{
+  font-family:'Space Mono',monospace;font-size:0.72rem;
+  padding:4px 12px;border-radius:20px;
+  background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.3);
+  color:var(--accent3);display:flex;align-items:center;gap:5px;
+}
+.live-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--accent3);
+  animation:livePulse 1.5s ease-in-out infinite;
+}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,229,160,0.4);}
+50%{opacity:0.7;box-shadow:0 0 0 4px rgba(0,229,160,0);}}
 
-/* ADMIN CONTROLS */
-.controls-bar{padding:1rem 1.5rem;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;gap:12px}
-.ctrl-btn{width:40px;height:40px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .1s}
-.ctrl-btn:hover{background:var(--card);border-color:var(--accent)}
-.ctrl-btn:active{transform:scale(.92)}
-.ctrl-btn.disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.header-right{display:flex;align-items:center;gap:8px;}
+.user-chip{
+  display:flex;align-items:center;gap:8px;
+  padding:5px 12px;border-radius:20px;
+  background:var(--surface2);border:1px solid var(--border);
+}
+.user-avatar{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:0.75rem;color:#fff;
+}
+.user-name-chip{font-size:0.8rem;font-weight:600;}
+.admin-tag{
+  font-family:'Space Mono',monospace;font-size:0.6rem;
+  padding:2px 6px;border-radius:4px;
+  background:rgba(245,166,35,0.2);color:var(--admin-color);
+  border:1px solid rgba(245,166,35,0.3);
+}
+.btn-leave{
+  padding:6px 14px;border:1px solid rgba(255,95,126,0.4);
+  border-radius:8px;background:rgba(255,95,126,0.1);
+  color:var(--accent2);font-family:'Syne',sans-serif;font-weight:600;font-size:0.78rem;
+  cursor:pointer;transition:background 0.2s;
+}
+.btn-leave:hover{background:rgba(255,95,126,0.2);}
 
-.ctrl-btn.play-pause{width:50px;height:50px;background:var(--accent);border-color:var(--accent);border-radius:50%;font-size:1.1rem}
-.ctrl-btn.play-pause:hover{background:#c1121f;border-color:#c1121f}
+/* Main layout */
+.app-body{display:flex;flex:1;overflow:hidden;height:calc(100vh - 57px);}
 
-.time-display{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--muted);margin-left:4px}
+/* Left panel - video */
+.video-panel{
+  flex:1;overflow-y:auto;padding:1.2rem;
+  display:flex;flex-direction:column;gap:1rem;
+}
 
-.seek-wrap{flex:1;display:flex;align-items:center;gap:10px}
-.seek-track{flex:1;height:4px;background:var(--card2);border-radius:2px;cursor:pointer;position:relative;overflow:visible}
-.seek-filled{height:100%;background:var(--accent);border-radius:2px;pointer-events:none;max-width:100%}
-.seek-thumb{position:absolute;top:50%;right:0;transform:translate(50%,-50%);width:12px;height:12px;background:var(--text);border-radius:50%;border:2px solid var(--accent);pointer-events:none;opacity:0;transition:opacity .2s}
-.seek-track:hover .seek-thumb{opacity:1}
+/* Right panel - chat */
+.chat-panel{
+  width:320px;flex-shrink:0;
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  background:var(--surface);
+}
 
-.vol-wrap{display:flex;align-items:center;gap:6px}
-.vol-icon{font-size:.9rem;cursor:pointer;color:var(--muted)}
-.vol-slider{-webkit-appearance:none;width:70px;height:3px;background:var(--card2);border-radius:2px;cursor:pointer}
-.vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--text);border-radius:50%;cursor:pointer}
+/* URL bar (admin only) */
+.url-bar{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r);padding:1rem;
+}
+.url-bar-row{display:flex;gap:8px;}
+.url-icon{
+  width:36px;height:36px;background:var(--surface3);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.url-input-wrap{flex:1;position:relative;}
+#roomUrlInput{
+  width:100%;padding:0.7rem 1rem;
+  background:var(--surface3);border:1.5px solid var(--border);
+  border-radius:8px;color:var(--text);
+  font-family:'Space Mono',monospace;font-size:0.8rem;
+  outline:none;transition:border-color 0.2s;
+}
+#roomUrlInput:focus{border-color:var(--accent);}
+#roomUrlInput::placeholder{color:var(--muted);}
+.btn-stream{
+  padding:0 1.2rem;
+  background:linear-gradient(135deg,var(--accent),#a855f7);
+  border:none;border-radius:8px;color:#fff;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;
+  cursor:pointer;white-space:nowrap;
+  transition:opacity 0.2s,transform 0.15s;
+}
+.btn-stream:hover{opacity:0.9;transform:translateY(-1px);}
+.btn-stream:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
 
-/* VIEWER CONTROL BAR */
-.viewer-bar{padding:1rem 1.5rem;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;gap:12px}
-.viewer-bar.hidden{display:none}
-.sync-status{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted)}
-.sync-indicator{width:8px;height:8px;border-radius:50%;background:var(--green)}
-.sync-indicator.synced{background:var(--green)}
-.sync-indicator.desynced{background:var(--orange);animation:livePulse 1s ease-in-out infinite}
+/* Info grid */
+.info-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+}
+.info-tile{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:10px;padding:0.8rem;
+}
+.info-tile .lbl{
+  font-family:'Space Mono',monospace;font-size:0.62rem;
+  color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;
+  margin-bottom:4px;
+}
+.info-tile .val{font-size:1.1rem;font-weight:700;}
+.val.a{color:var(--accent);}
+.val.g{color:var(--accent3);}
+.val.o{color:var(--accent4);}
 
-/* CHAT + RIGHT SIDE */
-.chat-side{display:flex;flex-direction:column;background:var(--surface)}
+/* Chunk bar */
+.chunk-wrap{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r);padding:0.9rem;
+}
+.chunk-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:0.7rem;
+}
+.chunk-title{
+  font-family:'Space Mono',monospace;font-size:0.65rem;
+  color:var(--muted);letter-spacing:2px;text-transform:uppercase;
+}
+.chunk-legend{display:flex;gap:12px;}
+.leg{display:flex;align-items:center;gap:4px;font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);}
+.leg-dot{width:7px;height:7px;border-radius:50%;}
+.chunk-bar{
+  display:flex;gap:3px;flex-wrap:wrap;min-height:30px;
+}
+.chunk-tile{
+  width:18px;height:18px;border-radius:3px;
+  background:var(--chunk-empty);border:1px solid #252540;
+  transition:all 0.25s;
+}
+.chunk-tile.buffered{background:var(--chunk-buffered);border-color:var(--chunk-buffered);}
+.chunk-tile.active{background:var(--chunk-active);border-color:var(--chunk-active);
+  box-shadow:0 0 6px var(--chunk-active);transform:scaleY(1.2);}
+.chunk-tile.loading{background:var(--chunk-loading);border-color:var(--chunk-loading);
+  animation:pulse 0.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
 
-.chat-header{padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.chat-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;color:var(--text)}
-.chat-tabs{display:flex;gap:4px}
-.tab-btn{padding:4px 14px;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--muted);font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s}
-.tab-btn.active{background:var(--card2);border-color:var(--border);color:var(--text)}
+/* Player */
+.player-outer{
+  background:#000;border-radius:var(--r);overflow:hidden;
+  border:1px solid var(--border);position:relative;
+  min-height:240px;
+}
+.player-placeholder{
+  min-height:360px;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:1rem;color:var(--muted);
+}
+.player-placeholder .big-icon{font-size:4rem;opacity:0.3;}
+.player-placeholder p{font-size:0.88rem;}
 
-/* MESSAGES */
-.messages{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:8px;min-height:0}
-.messages::-webkit-scrollbar{width:3px}
-.messages::-webkit-scrollbar-thumb{background:var(--card2)}
+#videoEl{width:100%;max-height:500px;display:none;background:#000;}
 
-.msg{display:flex;gap:8px;align-items:flex-start}
-.msg-avatar{width:28px;height:28px;border-radius:6px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0;font-weight:600}
-.msg-body{}
-.msg-name{font-size:.7rem;font-weight:600;margin-bottom:2px}
-.msg-name.admin-name{color:var(--accent)}
-.msg-name.viewer-name{color:var(--accent2)}
-.msg-text{font-size:.82rem;color:var(--text);line-height:1.5;background:var(--card);border-radius:0 8px 8px 8px;padding:6px 10px;display:inline-block;max-width:220px;word-break:break-word}
+/* Admin controls overlay */
+.admin-controls{
+  display:flex;gap:8px;flex-wrap:wrap;padding:0.8rem;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r);
+}
+.ctrl-btn{
+  padding:0.55rem 1rem;border-radius:8px;
+  font-family:'Syne',sans-serif;font-weight:600;font-size:0.82rem;
+  cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:all 0.2s;
+}
+.ctrl-play{background:rgba(0,229,160,0.15);border:1px solid rgba(0,229,160,0.4);color:var(--accent3);}
+.ctrl-play:hover{background:rgba(0,229,160,0.25);}
+.ctrl-pause{background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.3);color:var(--accent4);}
+.ctrl-pause:hover{background:rgba(245,166,35,0.22);}
+.ctrl-back{background:rgba(124,106,255,0.12);border:1px solid var(--border);color:var(--accent);}
+.ctrl-back:hover{background:rgba(124,106,255,0.22);}
+.ctrl-btn:disabled{opacity:0.35;cursor:not-allowed;}
 
-.msg-system{text-align:center;font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace;padding:4px 0}
+.viewer-notice{
+  font-family:'Space Mono',monospace;font-size:0.72rem;
+  color:var(--muted);padding:0.6rem 0.9rem;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:8px;display:flex;align-items:center;gap:8px;
+}
 
-/* VOICE CHAT */
-.voice-section{padding:1rem;border-top:1px solid var(--border)}
-.voice-header{font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:.75rem}
-.voice-users{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem;min-height:36px}
-.voice-user{display:flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:.75rem}
-.voice-user.speaking{border-color:var(--green);box-shadow:0 0 8px rgba(6,214,160,.3)}
-.voice-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
-.voice-user.speaking .voice-dot{background:var(--green);animation:livePulse 1s infinite}
-.voice-empty{font-size:.75rem;color:var(--muted);align-self:center}
+/* Sync indicator */
+.sync-bar{
+  font-family:'Space Mono',monospace;font-size:0.7rem;
+  padding:5px 12px;border-radius:6px;
+  background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.2);
+  color:var(--accent3);
+}
+.sync-bar.out-of-sync{
+  background:rgba(255,95,126,0.1);border-color:rgba(255,95,126,0.3);color:var(--accent2);
+}
 
-.btn-voice{width:100%;padding:.65rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
-.btn-voice:hover{border-color:var(--green);color:var(--green)}
-.btn-voice.active{background:rgba(6,214,160,.15);border-color:var(--green);color:var(--green)}
-.btn-voice.active:hover{background:rgba(6,214,160,.25)}
+/* ===== CHAT PANEL ===== */
+.chat-header{
+  padding:1rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.chat-title{font-weight:700;font-size:0.9rem;}
+.chat-tab-row{
+  display:flex;gap:4px;padding:0.6rem;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.chat-tab{
+  flex:1;padding:0.4rem;border-radius:6px;border:none;background:transparent;
+  color:var(--muted);font-family:'Syne',sans-serif;font-weight:600;font-size:0.78rem;
+  cursor:pointer;transition:all 0.2s;
+}
+.chat-tab.active{background:var(--surface3);color:var(--text);}
 
-/* CHAT INPUT */
-.chat-input-row{padding:1rem;border-top:1px solid var(--border);display:flex;gap:8px}
-.chat-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.65rem .9rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.82rem;outline:none;transition:border-color .2s;resize:none}
-.chat-input:focus{border-color:var(--accent2)}
-.chat-input::placeholder{color:var(--muted)}
-.btn-send{padding:.65rem 1rem;background:var(--accent2);border:none;border-radius:8px;color:#fff;font-size:.9rem;cursor:pointer;transition:opacity .2s}
-.btn-send:hover{opacity:.85}
+/* Messages */
+.messages-area{flex:1;overflow-y:auto;padding:0.8rem;display:flex;flex-direction:column;gap:0.6rem;}
+.msg-bubble{max-width:100%;}
+.msg-header{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+.msg-avatar{
+  width:22px;height:22px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.65rem;font-weight:700;color:#fff;flex-shrink:0;
+}
+.msg-name{font-size:0.75rem;font-weight:700;}
+.msg-time{font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);}
+.msg-text{
+  font-size:0.82rem;line-height:1.5;
+  background:var(--surface2);border-radius:0 8px 8px 8px;
+  padding:0.5rem 0.75rem;border:1px solid var(--border2);
+  word-break:break-word;
+}
+.msg-bubble.own .msg-header{flex-direction:row-reverse;}
+.msg-bubble.own .msg-text{background:rgba(124,106,255,0.15);border-color:rgba(124,106,255,0.25);border-radius:8px 0 8px 8px;text-align:right;}
+.msg-bubble.system .msg-text{
+  background:rgba(0,229,160,0.08);border-color:rgba(0,229,160,0.15);
+  color:var(--accent3);font-family:'Space Mono',monospace;font-size:0.72rem;
+  border-radius:8px;text-align:center;font-style:italic;
+}
 
-/* JOIN MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);z-index:500;display:flex;align-items:center;justify-content:center}
-.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;width:380px;max-width:90vw}
-.modal-title{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;margin-bottom:.25rem;color:var(--text)}
-.modal-sub{font-size:.85rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.6}
-.modal-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;margin-bottom:10px;transition:border-color .2s}
-.modal-input:focus{border-color:var(--accent)}
-.modal-input::placeholder{color:var(--muted)}
-.role-select{display:flex;gap:8px;margin-bottom:1.25rem}
-.role-opt{flex:1;padding:.65rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:.82rem;font-weight:600;cursor:pointer;text-align:center;transition:all .2s}
-.role-opt.selected.admin{background:rgba(230,57,70,.15);border-color:var(--accent);color:var(--accent)}
-.role-opt.selected.viewer{background:rgba(69,123,157,.15);border-color:var(--accent2);color:var(--accent2)}
-.btn-join{width:100%;padding:.8rem;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;transition:opacity .2s}
-.btn-join:hover{opacity:.85}
+.chat-input-area{
+  padding:0.7rem;border-top:1px solid var(--border);flex-shrink:0;
+}
+.chat-input-row{display:flex;gap:6px;}
+#chatInput{
+  flex:1;padding:0.6rem 0.9rem;
+  background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:8px;color:var(--text);
+  font-family:'Syne',sans-serif;font-size:0.82rem;
+  outline:none;transition:border-color 0.2s;
+}
+#chatInput:focus{border-color:var(--accent);}
+#chatInput::placeholder{color:var(--muted);}
+.btn-send{
+  padding:0 14px;border:none;border-radius:8px;
+  background:var(--accent);color:#fff;font-size:1rem;
+  cursor:pointer;transition:opacity 0.2s;
+}
+.btn-send:hover{opacity:0.85;}
 
-/* VIEWERS LIST in chat tab */
-.viewers-list{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:8px}
-.viewer-item{display:flex;align-items:center;gap:10px;padding:.65rem .9rem;background:var(--card);border-radius:8px}
-.v-avatar{width:32px;height:32px;border-radius:8px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700}
-.v-name{font-size:.85rem;font-weight:500}
-.v-role{font-size:.68rem;font-family:'JetBrains Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
-.v-role.admin{color:var(--accent)}
-.v-role.viewer{color:var(--accent2)}
+/* Voice chat */
+.voice-area{padding:0.8rem;display:flex;flex-direction:column;gap:0.6rem;}
+.voice-status{
+  display:flex;align-items:center;gap:8px;padding:0.7rem;
+  background:var(--surface2);border-radius:10px;border:1px solid var(--border);
+}
+.mic-btn{
+  width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  transition:all 0.2s;background:var(--surface3);
+}
+.mic-btn.active{background:rgba(0,229,160,0.2);box-shadow:0 0 12px rgba(0,229,160,0.4);}
+.mic-btn.muted{background:rgba(255,95,126,0.1);}
+.voice-info{flex:1;}
+.voice-label{font-weight:700;font-size:0.82rem;}
+.voice-sub{font-size:0.7rem;color:var(--muted);}
+.speakers-list{display:flex;flex-direction:column;gap:4px;}
+.speaker-row{
+  display:flex;align-items:center;gap:8px;padding:0.5rem 0.7rem;
+  background:var(--surface2);border-radius:8px;border:1px solid var(--border2);
+  font-size:0.78rem;
+}
+.speaker-wave{display:flex;gap:2px;align-items:flex-end;height:14px;}
+.wave-bar{
+  width:3px;background:var(--accent3);border-radius:2px;
+  animation:wave 0.6s ease-in-out infinite;
+}
+.wave-bar:nth-child(2){animation-delay:0.1s;height:8px;}
+.wave-bar:nth-child(3){animation-delay:0.2s;height:12px;}
+.wave-bar:nth-child(1){height:6px;}
+@keyframes wave{0%,100%{transform:scaleY(0.5);}50%{transform:scaleY(1.2);}}
 
-/* hidden */
-.hidden{display:none!important}
+/* Viewers list */
+.viewers-panel{padding:0.8rem;display:flex;flex-direction:column;gap:6px;}
+.viewer-row{
+  display:flex;align-items:center;gap:10px;padding:0.55rem 0.8rem;
+  background:var(--surface2);border-radius:8px;border:1px solid var(--border2);
+}
+.v-avatar{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.72rem;font-weight:700;color:#fff;
+}
+.v-name{font-size:0.82rem;font-weight:600;flex:1;}
+.v-admin-tag{
+  font-family:'Space Mono',monospace;font-size:0.58rem;
+  padding:2px 6px;border-radius:4px;
+  background:rgba(245,166,35,0.15);color:var(--admin-color);
+}
 
-@media(max-width:700px){
-  .app{grid-template-columns:1fr}
-  .chat-side{max-height:45vh}
-  .voice-section{display:none}
+/* Progress bar */
+.progress-track{height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-top:5px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 0.4s;width:0%;}
+
+/* Toast */
+#toast{
+  position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:0.7rem 1.5rem;font-family:'Space Mono',monospace;font-size:0.78rem;
+  z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface4);border-radius:2px;}
+
+/* Download overlay */
+#dlOverlay{
+  position:fixed;bottom:1.5rem;right:1.5rem;
+  background:var(--surface2);border:1px solid var(--border);border-radius:14px;
+  padding:1rem 1.25rem;font-family:'Space Mono',monospace;font-size:0.78rem;
+  min-width:240px;display:none;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+#dlOverlay .dl-title{color:var(--text);font-weight:700;margin-bottom:6px;}
+#dlOverlay .dl-info{color:var(--muted);margin-bottom:8px;font-size:0.72rem;}
+#dlOverlay .dl-bar{height:4px;background:var(--surface3);border-radius:2px;}
+#dlOverlay .dl-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:2px;transition:width 0.3s;width:0%;}
+
+/* Notification */
+.notif{
+  position:fixed;top:70px;right:1rem;
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:0.8rem 1rem;font-size:0.82rem;z-index:999;
+  transform:translateX(120%);transition:transform 0.3s;min-width:200px;
+}
+.notif.show{transform:translateX(0);}
+
+@media(max-width:768px){
+  .chat-panel{display:none;}
+  .info-row{grid-template-columns:repeat(2,1fr);}
+  .app-header{padding:0.7rem 1rem;}
+  .header-center{display:none;}
 }
 </style>
 </head>
 <body>
 
-<!-- JOIN MODAL -->
-<div class="modal-overlay" id="joinModal">
-  <div class="modal">
-    <div class="modal-title">CINESYNC</div>
-    <div class="modal-sub">একসাথে মুভি দেখো। Admin ভিডিও কন্ট্রোল করে, সবাই একই সময়ে দেখে।</div>
-    <input class="modal-input" id="nameInput" placeholder="তোমার নাম লেখো..." maxlength="20"/>
-    <div class="role-select">
-      <div class="role-opt admin selected" id="roleAdmin" onclick="selectRole('admin')">🎬 Admin</div>
-      <div class="role-opt viewer" id="roleViewer" onclick="selectRole('viewer')">👁 Viewer</div>
+<!-- ===== LOBBY ===== -->
+<div id="lobbyScreen">
+  <div class="lobby-logo">
+    <div class="logo-mark">▶</div>
+    <div class="lobby-title">StreamBox</div>
+  </div>
+  <div class="lobby-sub">// WATCH PARTY ENGINE v3.0</div>
+
+  <div class="lobby-card">
+    <div class="lobby-tabs">
+      <button class="tab-btn active" onclick="switchTab('create')">🎬 Room Create</button>
+      <button class="tab-btn" onclick="switchTab('join')">🚀 Room Join</button>
     </div>
-    <div id="adminKeyWrap" style="margin-bottom:10px">
-      <input class="modal-input" id="adminKey" placeholder="Admin পাসওয়ার্ড (ঐচ্ছিক)..." type="password" style="margin-bottom:0"/>
+
+    <!-- Create Tab -->
+    <div id="createTab">
+      <label class="field-label">তোমার নাম</label>
+      <input type="text" class="field-input" id="createName" placeholder="যেমন: Rahim Bhai" maxlength="20"/>
+      <label class="field-label">Room নাম (Optional)</label>
+      <input type="text" class="field-input" id="createRoomName" placeholder="যেমন: Movie Night 🍿" maxlength="30"/>
+      <button class="btn-primary" onclick="createRoom()">🎬 Room তৈরি করুন (Admin)</button>
     </div>
-    <button class="btn-join" onclick="joinRoom()">▶ রুমে যোগ দাও</button>
+
+    <!-- Join Tab -->
+    <div id="joinTab" style="display:none;">
+      <label class="field-label">তোমার নাম</label>
+      <input type="text" class="field-input" id="joinName" placeholder="যেমন: Karim Vai" maxlength="20"/>
+      <label class="field-label">Room Code</label>
+      <input type="text" class="field-input" id="joinCode" placeholder="6-digit code যেমন: ABC123" maxlength="10" style="text-transform:uppercase;letter-spacing:4px;"/>
+      <button class="btn-primary" onclick="joinRoom()">🚀 Room এ প্রবেশ করুন</button>
+    </div>
+  </div>
+
+  <div style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);text-align:center;max-width:360px;">
+    Admin শুধু play/pause/backward করতে পারবে। সবাই sync-এ দেখবে। Text & Voice chat সহ।
   </div>
 </div>
 
-<!-- HEADER -->
-<header>
-  <div class="logo">
-    <div>
-      <div class="logo-mark">CineSync</div>
-      <div class="logo-sub">Watch Party Engine</div>
+<!-- ===== APP ===== -->
+<div id="appScreen">
+  <header class="app-header">
+    <div class="app-logo">
+      <div class="app-logo-icon">▶</div>
+      <div class="app-logo-text">Stream<span>Box</span></div>
     </div>
-  </div>
-  <div class="header-right">
-    <div class="viewers-count"><div class="live-dot"></div><span id="viewerCountDisplay">0 দর্শক</span></div>
-    <div class="role-badge role-admin hidden" id="adminBadge">Admin</div>
-    <div class="role-badge role-viewer hidden" id="viewerBadge">Viewer</div>
-  </div>
-</header>
-
-<!-- APP -->
-<div class="app">
-  <!-- VIDEO SIDE -->
-  <div class="video-side">
-    <!-- URL bar (admin only) -->
-    <div class="url-bar hidden" id="urlBar">
-      <input class="url-input" id="urlInput" placeholder="ভিডিও লিংক পেস্ট করুন (MP4, YouTube, Google Drive)..." />
-      <button class="btn-go" onclick="adminLoadVideo()">▶ লোড</button>
-    </div>
-
-    <!-- Player -->
-    <div class="player-container" id="playerContainer">
-      <div class="idle-screen" id="idleScreen">
-        <div class="idle-icon">🎬</div>
-        <div class="idle-title">কোনো ভিডিও নেই</div>
-        <div class="idle-sub" id="idleSubText">Admin ভিডিও লোড করলে শুরু হবে...</div>
-      </div>
-      <video id="videoEl" controls></video>
-      <iframe id="ytFrame" style="width:100%;max-height:60vh;border:none;display:none" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-      <div class="sync-overlay" id="syncOverlay">
-        <div class="sync-spinner"></div>
-        <div class="sync-text">সিঙ্ক হচ্ছে...</div>
+    <div class="header-center">
+      <div class="room-badge" id="roomCodeBadge">ROOM: ——</div>
+      <div class="viewers-badge">
+        <div class="live-dot"></div>
+        <span id="viewerCount">1</span> জন দেখছে
       </div>
     </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="headerAvatar" style="background:var(--accent);">?</div>
+        <span class="user-name-chip" id="headerName">—</span>
+        <span class="admin-tag" id="adminTag" style="display:none;">ADMIN</span>
+      </div>
+      <button class="btn-leave" onclick="leaveRoom()">✕ বের হন</button>
+    </div>
+  </header>
 
-    <!-- Admin controls -->
-    <div class="controls-bar hidden" id="adminControls">
-      <button class="ctrl-btn play-pause" id="playPauseBtn" onclick="adminPlayPause()" title="Play/Pause">▶</button>
-      <button class="ctrl-btn" onclick="adminSeek(-10)" title="-10s">⏮</button>
-      <button class="ctrl-btn" onclick="adminSeek(10)" title="+10s">⏭</button>
-      <div class="seek-wrap">
-        <span class="time-display" id="currentTimeDisplay">0:00</span>
-        <div class="seek-track" id="seekTrack" onclick="adminSeekTo(event)">
-          <div class="seek-filled" id="seekFilled" style="width:0%"></div>
-          <div class="seek-thumb" id="seekThumb"></div>
+  <div class="app-body">
+    <!-- Video Panel -->
+    <div class="video-panel">
+
+      <!-- URL Bar (admin only) -->
+      <div class="url-bar" id="urlBarAdmin" style="display:none;">
+        <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.7rem;">
+          // VIDEO LINK — সবাই দেখতে পাবে
         </div>
-        <span class="time-display" id="durationDisplay">0:00</span>
-      </div>
-      <div class="vol-wrap">
-        <span class="vol-icon" onclick="toggleMute()">🔊</span>
-        <input type="range" class="vol-slider" id="volSlider" min="0" max="1" step="0.05" value="1" oninput="setVolume(this.value)">
-      </div>
-    </div>
-
-    <!-- Viewer sync bar -->
-    <div class="viewer-bar hidden" id="viewerBar">
-      <div class="sync-status">
-        <div class="sync-indicator synced" id="syncIndicator"></div>
-        <span id="syncStatusText">Admin এর সাথে সিঙ্ক হচ্ছে...</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- CHAT SIDE -->
-  <div class="chat-side">
-    <div class="chat-header">
-      <div class="chat-title">লাইভ চ্যাট</div>
-      <div class="chat-tabs">
-        <button class="tab-btn active" onclick="switchTab('chat',this)">💬 চ্যাট</button>
-        <button class="tab-btn" onclick="switchTab('viewers',this)">👥 সদস্য</button>
-      </div>
-    </div>
-
-    <!-- Chat tab -->
-    <div id="chatTab" style="display:flex;flex-direction:column;flex:1;min-height:0">
-      <div class="messages" id="messagesBox"></div>
-      <!-- Voice -->
-      <div class="voice-section">
-        <div class="voice-header">// ভয়েস চ্যাট</div>
-        <div class="voice-users" id="voiceUsers">
-          <span class="voice-empty">কেউ কথা বলছে না...</span>
+        <div class="url-bar-row">
+          <div class="url-icon">⌘</div>
+          <div class="url-input-wrap">
+            <input type="text" id="roomUrlInput" placeholder="https://example.com/video.mp4 বা YouTube / Drive লিংক..."/>
+          </div>
+          <button class="btn-stream" id="btnStream" onclick="adminLoadVideo()">▶ স্ট্রিম করুন</button>
         </div>
-        <button class="btn-voice" id="voiceBtn" onclick="toggleVoice()">🎤 ভয়েস চ্যাট চালু করো</button>
       </div>
-      <!-- Input -->
-      <div class="chat-input-row">
-        <textarea class="chat-input" id="chatInput" placeholder="মেসেজ লেখো..." rows="1" onkeydown="chatKeydown(event)"></textarea>
-        <button class="btn-send" onclick="sendChat()">➤</button>
+
+      <!-- Viewer URL display -->
+      <div id="urlBarViewer" style="display:none;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:0.9rem;">
+        <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:2px;margin-bottom:5px;">// SYNCED STREAM</div>
+        <div id="viewerUrlDisplay" style="font-family:'Space Mono',monospace;font-size:0.78rem;color:var(--accent);word-break:break-all;"></div>
       </div>
+
+      <!-- Info tiles -->
+      <div class="info-row">
+        <div class="info-tile">
+          <div class="lbl">মোট চাংক</div>
+          <div class="val a" id="totalChunks">—</div>
+        </div>
+        <div class="info-tile">
+          <div class="lbl">বাফার্ড</div>
+          <div class="val g" id="bufferedChunks">0</div>
+          <div class="progress-track"><div class="progress-fill" id="bufferProgress"></div></div>
+        </div>
+        <div class="info-tile">
+          <div class="lbl">স্পিড</div>
+          <div class="val" id="speedVal">—</div>
+        </div>
+        <div class="info-tile">
+          <div class="lbl">Sync</div>
+          <div class="val g" id="syncStatus">✓ OK</div>
+        </div>
+      </div>
+
+      <!-- Chunk visualizer -->
+      <div class="chunk-wrap">
+        <div class="chunk-header">
+          <div class="chunk-title">// চাংক বাফার</div>
+          <div class="chunk-legend">
+            <div class="leg"><div class="leg-dot" style="background:var(--chunk-active);"></div>Active</div>
+            <div class="leg"><div class="leg-dot" style="background:var(--chunk-buffered);"></div>Buffer</div>
+            <div class="leg"><div class="leg-dot" style="background:var(--chunk-loading);"></div>Loading</div>
+          </div>
+        </div>
+        <div class="chunk-bar" id="chunkBar">
+          <div style="color:var(--muted);font-size:0.75rem;font-family:'Space Mono',monospace;">
+            ভিডিও লোড হলে দেখা যাবে...
+          </div>
+        </div>
+      </div>
+
+      <!-- Player -->
+      <div class="player-outer" id="playerOuter">
+        <div class="player-placeholder" id="playerPlaceholder">
+          <div class="big-icon">🎬</div>
+          <p>Admin ভিডিও লোড করলে শুরু হবে...</p>
+        </div>
+        <video id="videoEl" controls></video>
+      </div>
+
+      <!-- Admin controls -->
+      <div id="adminControls" style="display:none;">
+        <div class="admin-controls">
+          <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--admin-color);letter-spacing:2px;width:100%;margin-bottom:4px;">
+            👑 ADMIN CONTROLS — শুধু তুমিই নিয়ন্ত্রণ করতে পারবে
+          </div>
+          <button class="ctrl-btn ctrl-play" onclick="adminPlay()">▶ Play</button>
+          <button class="ctrl-btn ctrl-pause" onclick="adminPause()">⏸ Pause</button>
+          <button class="ctrl-btn ctrl-back" onclick="adminBackward(10)">⏪ -10s</button>
+          <button class="ctrl-btn ctrl-back" onclick="adminBackward(30)">⏪ -30s</button>
+        </div>
+      </div>
+
+      <!-- Viewer notice -->
+      <div id="viewerControls" style="display:none;">
+        <div class="viewer-notice">
+          🔒 Admin play/pause/backward করলে তোমার ভিডিওও sync হবে। তুমি শুধু দেখবে।
+        </div>
+      </div>
+
+      <!-- Download controls -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="ctrl-btn ctrl-back" id="btnChunkDl" onclick="startChunkDownload()" style="display:none;">⬇ Chunk Download</button>
+        <button class="ctrl-btn ctrl-back" id="btnDirectDl" onclick="directDownload()" style="display:none;">↓ Direct Download</button>
+      </div>
+
     </div>
 
-    <!-- Viewers tab -->
-    <div id="viewersTab" class="viewers-list hidden"></div>
+    <!-- Chat Panel -->
+    <div class="chat-panel">
+      <div class="chat-header">
+        <div class="chat-title">💬 Party Chat</div>
+        <div class="room-badge" id="chatRoomCode" style="font-size:0.65rem;">——</div>
+      </div>
+
+      <div class="chat-tab-row">
+        <button class="chat-tab active" onclick="switchChatTab('chat')">💬 Chat</button>
+        <button class="chat-tab" onclick="switchChatTab('voice')">🎙️ Voice</button>
+        <button class="chat-tab" onclick="switchChatTab('viewers')">👥 দর্শক</button>
+      </div>
+
+      <!-- Chat tab -->
+      <div id="chatTabContent" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <div class="messages-area" id="messagesArea"></div>
+        <div class="chat-input-area">
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="কিছু লিখুন..." maxlength="200"/>
+            <button class="btn-send" onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voice tab -->
+      <div id="voiceTabContent" style="display:none;flex:1;overflow-y:auto;">
+        <div class="voice-area">
+          <div class="voice-status">
+            <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎙️</button>
+            <div class="voice-info">
+              <div class="voice-label" id="voiceLabel">মাইক বন্ধ</div>
+              <div class="voice-sub" id="voiceSub">মাইক বাটন চাপুন</div>
+            </div>
+          </div>
+          <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:1.5px;margin-top:4px;">
+            // SPEAKING NOW
+          </div>
+          <div class="speakers-list" id="speakersList">
+            <div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:1rem;">
+              কেউ এখনো কথা বলছে না
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Viewers tab -->
+      <div id="viewersTabContent" style="display:none;flex:1;overflow-y:auto;">
+        <div class="viewers-panel" id="viewersList"></div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, onValue, push, serverTimestamp, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+<!-- Download overlay -->
+<div id="dlOverlay">
+  <div class="dl-title">⬇ Chunk Download</div>
+  <div class="dl-info" id="dlInfo">প্রস্তুত হচ্ছে...</div>
+  <div class="dl-bar"><div class="dl-fill" id="dlFill"></div></div>
+</div>
 
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<script>
+// ===== FIREBASE INIT =====
 const firebaseConfig = {
   apiKey: "AIzaSyDQw9ksYuDM451LjtHpnUPoRx4Mh9zEOOE",
   authDomain: "movie-960db.firebaseapp.com",
@@ -325,415 +748,739 @@ const firebaseConfig = {
   messagingSenderId: "169250488305",
   appId: "1:169250488305:web:cc71dc93d3a3f698d20e50"
 };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// State
+// ===== STATE =====
 let myName = '';
-let myRole = 'viewer';
-let myId = 'user_' + Math.random().toString(36).slice(2,9);
+let myId = '';
+let roomCode = '';
 let isAdmin = false;
-let videoEl = document.getElementById('videoEl');
-let ytFrame = document.getElementById('ytFrame');
-let isSyncing = false;
-let isVoiceActive = false;
-let voiceStream = null;
+let currentUrl = '';
+let totalSize = 0;
+let totalChunks = 0;
+let chunkStates = [];
+let mediaSource = null;
+let sourceBuffer = null;
+let stopped = false;
+let downloadedChunks = [];
+let bytesLoaded = 0;
+let speedInterval = null;
+let activeChunkIdx = 0;
+let startTime = 0;
+let micStream = null;
 let peerConnections = {};
-let currentVideoUrl = '';
-let lastKnownTime = 0;
-let isMuted = false;
-let ADMIN_PASS = 'admin123';
+let isMicOn = false;
+let ignoreNextSync = false;
+let roomRef = null;
+let listeners = [];
+let CHUNK_SIZE = 1 * 1024 * 1024;
+const COLORS = ['#7c6aff','#ff5f7e','#00e5a0','#f5a623','#60a5fa','#f472b6','#34d399','#fb923c'];
 
-// Avatars
-const AVATARS = ['🎬','🍿','🎥','🎞','🌟','🎭','🦁','🐯','🦊','🐸','🌈','⚡'];
-function getAvatar(name){ return AVATARS[name.charCodeAt(0) % AVATARS.length]; }
+// ===== UTILS =====
+function genId(){ return Math.random().toString(36).slice(2,10); }
+function genCode(){ return Math.random().toString(36).slice(2,8).toUpperCase(); }
+function colorFor(name){ let h=0;for(let c of name)h+=c.charCodeAt(0);return COLORS[h%COLORS.length]; }
+function initial(name){ return name ? name[0].toUpperCase() : '?'; }
+function formatBytes(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(2)+' MB';}
+function formatSpeed(b){if(b<1024)return b.toFixed(0)+' B/s';if(b<1048576)return(b/1024).toFixed(1)+' KB/s';return(b/1048576).toFixed(2)+' MB/s';}
 
-// ====== JOIN ======
-window.selectRole = function(role){
-  myRole = role;
-  document.getElementById('roleAdmin').classList.toggle('selected', role==='admin');
-  document.getElementById('roleAdmin').classList.toggle('admin', role==='admin');
-  document.getElementById('roleViewer').classList.toggle('selected', role==='viewer');
-  document.getElementById('roleViewer').classList.toggle('viewer', role==='viewer');
-  document.getElementById('adminKeyWrap').style.display = role==='admin' ? 'block' : 'none';
-};
-selectRole('admin'); // default show
-
-window.joinRoom = function(){
-  const name = document.getElementById('nameInput').value.trim();
-  if(!name){ document.getElementById('nameInput').style.borderColor='var(--accent)'; return; }
-  
-  if(myRole === 'admin'){
-    const key = document.getElementById('adminKey').value.trim();
-    if(key && key !== ADMIN_PASS){ alert('ভুল পাসওয়ার্ড!'); return; }
-    isAdmin = true;
-  }
-
-  myName = name;
-  document.getElementById('joinModal').style.display = 'none';
-  initUI();
-  connectFirebase();
-};
-
-function initUI(){
-  if(isAdmin){
-    document.getElementById('adminBadge').classList.remove('hidden');
-    document.getElementById('urlBar').classList.remove('hidden');
-    document.getElementById('adminControls').classList.remove('hidden');
-    document.getElementById('idleSubText').textContent = 'উপরে লিংক পেস্ট করে লোড করুন...';
-  } else {
-    document.getElementById('viewerBadge').classList.remove('hidden');
-    document.getElementById('viewerBar').classList.remove('hidden');
-  }
-  addSystemMsg(myName + ' রুমে যোগ দিলেন 🎉');
+function showToast(msg, dur=2500){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
 }
 
-// ====== FIREBASE CONNECT ======
-function connectFirebase(){
-  // Presence
-  const presenceRef = ref(db, `room/users/${myId}`);
-  set(presenceRef, { name: myName, role: isAdmin ? 'admin' : 'viewer', joinedAt: Date.now() });
-  onDisconnect(presenceRef).remove();
+// ===== LOBBY TABS =====
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===(tab==='create'?0:1)));
+  document.getElementById('createTab').style.display=tab==='create'?'':'none';
+  document.getElementById('joinTab').style.display=tab==='join'?'':'none';
+}
 
-  // Watch users
-  onValue(ref(db, 'room/users'), snap => {
-    const users = snap.val() || {};
-    renderViewers(users);
-    const count = Object.keys(users).length;
-    document.getElementById('viewerCountDisplay').textContent = count + ' দর্শক';
+// ===== CREATE ROOM =====
+async function createRoom(){
+  const name = document.getElementById('createName').value.trim();
+  const rName = document.getElementById('createRoomName').value.trim() || 'Watch Party 🍿';
+  if(!name){showToast('নাম দিন!');return;}
+
+  myId = genId();
+  myName = name;
+  roomCode = genCode();
+  isAdmin = true;
+
+  const roomData = {
+    code: roomCode,
+    name: rName,
+    adminId: myId,
+    createdAt: Date.now(),
+    videoUrl: '',
+    playing: false,
+    currentTime: 0,
+    lastSync: Date.now()
+  };
+
+  await db.ref(`rooms/${roomCode}`).set(roomData);
+  await db.ref(`rooms/${roomCode}/members/${myId}`).set({
+    name: myName, isAdmin: true, color: colorFor(myName), joinedAt: Date.now()
   });
 
-  // Watch video state (non-admin syncs)
-  onValue(ref(db, 'room/videoState'), snap => {
-    const state = snap.val();
-    if(!state) return;
-    
-    if(!isAdmin){
-      syncVideoState(state);
-    }
-    
-    // Load video if URL changed
-    if(state.url && state.url !== currentVideoUrl){
-      currentVideoUrl = state.url;
-      loadVideoUrl(state.url, state.isYT);
-    }
+  enterApp();
+}
+
+// ===== JOIN ROOM =====
+async function joinRoom(){
+  const name = document.getElementById('joinName').value.trim();
+  const code = document.getElementById('joinCode').value.trim().toUpperCase();
+  if(!name){showToast('নাম দিন!');return;}
+  if(!code||code.length<4){showToast('Room Code দিন!');return;}
+
+  const snap = await db.ref(`rooms/${code}`).once('value');
+  if(!snap.exists()){showToast('Room পাওয়া গেলো না!');return;}
+
+  myId = genId();
+  myName = name;
+  roomCode = code;
+  isAdmin = false;
+
+  await db.ref(`rooms/${roomCode}/members/${myId}`).set({
+    name: myName, isAdmin: false, color: colorFor(myName), joinedAt: Date.now()
   });
 
-  // Watch chat
-  onValue(ref(db, 'room/chat'), snap => {
-    const msgs = snap.val();
-    if(!msgs) return;
-    const box = document.getElementById('messagesBox');
-    const keys = Object.keys(msgs).sort();
-    // Only add new ones
-    const existingIds = new Set([...box.querySelectorAll('[data-msgid]')].map(el=>el.dataset.msgid));
-    keys.forEach(k => {
-      if(!existingIds.has(k)){
-        const m = msgs[k];
-        appendChatMsg(m, k);
+  enterApp();
+}
+
+// ===== ENTER APP =====
+function enterApp(){
+  document.getElementById('lobbyScreen').style.display='none';
+  document.getElementById('appScreen').classList.add('show');
+
+  document.getElementById('roomCodeBadge').textContent=`ROOM: ${roomCode}`;
+  document.getElementById('chatRoomCode').textContent=roomCode;
+  document.getElementById('headerName').textContent=myName;
+  document.getElementById('headerAvatar').textContent=initial(myName);
+  document.getElementById('headerAvatar').style.background=colorFor(myName);
+
+  if(isAdmin){
+    document.getElementById('urlBarAdmin').style.display='block';
+    document.getElementById('adminControls').style.display='block';
+    document.getElementById('adminTag').style.display='inline-block';
+  } else {
+    document.getElementById('urlBarViewer').style.display='block';
+    document.getElementById('viewerControls').style.display='block';
+  }
+
+  setupListeners();
+  addSystemMsg(`${myName} room এ যোগ দিয়েছে! 🎉`);
+  showToast(`✓ Room ${roomCode} এ যোগ দেওয়া হয়েছে!`);
+
+  // Copy room code to clipboard
+  navigator.clipboard?.writeText(roomCode).catch(()=>{});
+
+  // On disconnect, remove member
+  db.ref(`rooms/${roomCode}/members/${myId}`).onDisconnect().remove();
+  if(isAdmin){
+    db.ref(`rooms/${roomCode}`).onDisconnect().remove();
+  }
+}
+
+// ===== FIREBASE LISTENERS =====
+function setupListeners(){
+  roomRef = db.ref(`rooms/${roomCode}`);
+
+  // Members
+  const mlRef = db.ref(`rooms/${roomCode}/members`);
+  mlRef.on('value', snap=>{
+    const members = snap.val() || {};
+    const count = Object.keys(members).length;
+    document.getElementById('viewerCount').textContent=count;
+    renderViewers(members);
+  });
+
+  // Chat messages
+  const chatRef = db.ref(`rooms/${roomCode}/chat`);
+  chatRef.limitToLast(100).on('child_added', snap=>{
+    const msg = snap.val();
+    appendMessage(msg);
+  });
+
+  // Video state sync (for viewers)
+  if(!isAdmin){
+    roomRef.child('videoUrl').on('value', snap=>{
+      const url = snap.val();
+      if(url && url !== currentUrl){
+        currentUrl = url;
+        document.getElementById('viewerUrlDisplay').textContent = url.length>60?url.slice(0,57)+'...':url;
+        viewerLoadVideo(url);
       }
     });
+  }
+
+  // Playback sync
+  roomRef.child('syncCmd').on('value', snap=>{
+    const cmd = snap.val();
+    if(!cmd || isAdmin) return;
+    handleSyncCmd(cmd);
   });
 
-  // Watch voice users
-  onValue(ref(db, 'room/voice'), snap => {
-    const voices = snap.val() || {};
-    renderVoiceUsers(voices);
+  // Voice signaling
+  db.ref(`rooms/${roomCode}/signals/${myId}`).on('child_added', snap=>{
+    handleSignal(snap.key, snap.val());
   });
 }
 
-// ====== VIDEO STATE SYNC ======
-function pushVideoState(extra={}){
-  if(!isAdmin) return;
-  const state = {
-    url: currentVideoUrl,
-    isYT: ytFrame.style.display !== 'none',
-    playing: !videoEl.paused,
-    currentTime: videoEl.currentTime,
-    serverTime: Date.now(),
-    ...extra
+// ===== SYNC COMMANDS =====
+function sendSyncCmd(type, time){
+  db.ref(`rooms/${roomCode}/syncCmd`).set({
+    type, time: time||0, ts: Date.now(), by: myId
+  });
+}
+
+function handleSyncCmd(cmd){
+  if(cmd.by === myId) return;
+  const video = document.getElementById('videoEl');
+  if(!video.src && !video.currentSrc) return;
+  const age = (Date.now() - cmd.ts)/1000;
+
+  if(cmd.type === 'play'){
+    const target = cmd.time + age;
+    if(Math.abs(video.currentTime - target) > 1.5) video.currentTime = target;
+    video.play().catch(()=>{});
+    document.getElementById('syncStatus').textContent='▶ PLAY';
+    document.getElementById('syncStatus').style.color='var(--accent3)';
+  } else if(cmd.type === 'pause'){
+    video.currentTime = cmd.time;
+    video.pause();
+    document.getElementById('syncStatus').textContent='⏸ PAUSE';
+    document.getElementById('syncStatus').style.color='var(--accent4)';
+  } else if(cmd.type === 'seek'){
+    video.currentTime = cmd.time;
+    document.getElementById('syncStatus').textContent='⏪ SYNCED';
+    document.getElementById('syncStatus').style.color='var(--accent)';
+  }
+}
+
+// ===== ADMIN VIDEO LOAD =====
+async function adminLoadVideo(){
+  const url = document.getElementById('roomUrlInput').value.trim();
+  if(!url){showToast('লিংক দিন!');return;}
+
+  currentUrl = url;
+  await db.ref(`rooms/${roomCode}/videoUrl`).set(url);
+  await db.ref(`rooms/${roomCode}/syncCmd`).set({type:'pause',time:0,ts:Date.now(),by:myId});
+
+  document.getElementById('btnStream').disabled=true;
+  stopped=false;bytesLoaded=0;downloadedChunks=[];
+
+  addSystemMsg(`Admin নতুন ভিডিও লোড করছে... 🎬`);
+
+  if(url.includes('youtube.com')||url.includes('youtu.be')){ loadYouTube(url); return; }
+  if(url.includes('drive.google.com')){ loadGDrive(url); return; }
+
+  await detectAndStream(url, true);
+  document.getElementById('btnStream').disabled=false;
+  document.getElementById('btnChunkDl').style.display='';
+  document.getElementById('btnDirectDl').style.display='';
+}
+
+// ===== VIEWER VIDEO LOAD =====
+async function viewerLoadVideo(url){
+  if(url.includes('youtube.com')||url.includes('youtu.be')){ loadYouTube(url); return; }
+  if(url.includes('drive.google.com')){ loadGDrive(url); return; }
+  await detectAndStream(url, false);
+}
+
+// ===== DETECT & STREAM =====
+async function detectAndStream(url, admin){
+  showLoader();
+  try {
+    let resp;
+    try { resp = await fetch(url,{method:'HEAD'}); } catch(e){ directStream(url); return; }
+    if(!resp.ok){ directStream(url); return; }
+
+    const range = resp.headers.get('accept-ranges');
+    const cLen = resp.headers.get('content-length');
+    const cType = resp.headers.get('content-type')||'video/mp4';
+
+    if(cLen){
+      totalSize=parseInt(cLen);
+      totalChunks=Math.ceil(totalSize/CHUNK_SIZE);
+      document.getElementById('totalChunks').textContent=totalChunks;
+      chunkStates=new Array(totalChunks).fill('empty');
+      renderChunkBar();
+    }
+
+    if(range==='bytes'&&cLen){ startChunkStream(url,cType); }
+    else { directStream(url,cType); }
+  } catch(e){ directStream(url); }
+}
+
+// ===== CHUNK STREAM =====
+async function startChunkStream(url, cType){
+  const video = document.getElementById('videoEl');
+  showVideo();
+
+  if(!window.MediaSource){ directStream(url,cType); return; }
+  const mime = getMime(cType);
+  if(!MediaSource.isTypeSupported(mime)){ directStream(url,cType); return; }
+
+  mediaSource=new MediaSource();
+  video.src=URL.createObjectURL(mediaSource);
+  startTime=Date.now();
+  speedInterval=setInterval(updateSpeed,1000);
+
+  mediaSource.addEventListener('sourceopen',async()=>{
+    sourceBuffer=mediaSource.addSourceBuffer(mime);
+    sourceBuffer.mode='sequence';
+
+    for(let i=0;i<totalChunks;i++){
+      if(stopped)break;
+      await fetchChunk(url,i);
+    }
+    if(!stopped){
+      await waitBuf();
+      try{mediaSource.endOfStream();}catch(e){}
+    }
+    clearInterval(speedInterval);
+    document.getElementById('syncStatus').textContent='✓ Ready';
+  });
+}
+
+async function fetchChunk(url,idx){
+  const s=idx*CHUNK_SIZE, e=Math.min(s+CHUNK_SIZE-1,totalSize-1);
+  setChunk(idx,'loading');
+  try{
+    const resp=await fetch(url,{headers:{'Range':`bytes=${s}-${e}`}});
+    if(!resp.ok&&resp.status!==206){setChunk(idx,'empty');return;}
+    const buf=await resp.arrayBuffer();
+    bytesLoaded+=buf.byteLength;
+    downloadedChunks[idx]=buf;
+    await appendBuf(buf);
+    setChunk(idx,'buffered');
+    trackChunk();
+  }catch(e){setChunk(idx,'empty');}
+}
+
+function appendBuf(data){
+  return new Promise((res)=>{
+    if(!sourceBuffer||mediaSource.readyState!=='open'){res();return;}
+    sourceBuffer.addEventListener('updateend',res,{once:true});
+    try{sourceBuffer.appendBuffer(data);}catch(e){res();}
+  });
+}
+
+function waitBuf(){
+  return new Promise(r=>{
+    if(!sourceBuffer||!sourceBuffer.updating){r();return;}
+    sourceBuffer.addEventListener('updateend',r,{once:true});
+  });
+}
+
+// ===== DIRECT STREAM =====
+function directStream(url,cType){
+  const video=document.getElementById('videoEl');
+  showVideo();
+  video.src=url;
+  video.load();
+  if(isAdmin) video.pause();
+  else video.play().catch(()=>{});
+
+  totalChunks=32;chunkStates=new Array(32).fill('empty');
+  renderChunkBar();simulateFakeChunks();
+  document.getElementById('totalChunks').textContent='∞';
+}
+
+let simInt=null;
+function simulateFakeChunks(){
+  let i=0;clearInterval(simInt);
+  simInt=setInterval(()=>{
+    if(stopped||i>=totalChunks){clearInterval(simInt);return;}
+    if(i>0&&chunkStates[i-1]==='active')setChunk(i-1,'buffered');
+    setChunk(i,'active');i++;
+  },500);
+}
+
+// ===== YOUTUBE =====
+function loadYouTube(url){
+  let vid='';
+  try{const u=new URL(url);vid=u.searchParams.get('v')||u.pathname.split('/').pop();}catch(e){}
+  if(!vid){showToast('YouTube ID পাওয়া গেলো না');return;}
+
+  const wrap=document.getElementById('playerOuter');
+  document.getElementById('playerPlaceholder').style.display='none';
+  document.getElementById('videoEl').style.display='none';
+  const old=document.getElementById('ytFrame');if(old)old.remove();
+
+  const fr=document.createElement('iframe');
+  fr.id='ytFrame';fr.width='100%';fr.height='480';
+  fr.src=`https://www.youtube.com/embed/${vid}?autoplay=1&enablejsapi=1`;
+  fr.frameBorder='0';fr.allowFullscreen=true;
+  fr.allow='autoplay; encrypted-media';
+  wrap.appendChild(fr);
+
+  totalChunks=24;chunkStates=new Array(24).fill('empty');
+  renderChunkBar();simulateFakeChunks();
+  addSystemMsg('YouTube ভিডিও লোড হয়েছে 📺');
+}
+
+// ===== GOOGLE DRIVE =====
+function loadGDrive(url){
+  const m=url.match(/\/d\/([^/]+)\//);
+  if(!m){showToast('Drive ID পাওয়া গেলো না');return;}
+  const fileId=m[1];
+  const dUrl=`https://drive.google.com/uc?export=download&id=${fileId}`;
+  currentUrl=dUrl;
+  directStream(dUrl);
+}
+
+// ===== ADMIN CONTROLS =====
+function adminPlay(){
+  const v=document.getElementById('videoEl');
+  v.play().catch(()=>{});
+  sendSyncCmd('play',v.currentTime);
+  addSystemMsg('Admin ভিডিও চালু করলো ▶');
+}
+
+function adminPause(){
+  const v=document.getElementById('videoEl');
+  v.pause();
+  sendSyncCmd('pause',v.currentTime);
+  addSystemMsg('Admin ভিডিও pause করলো ⏸');
+}
+
+function adminBackward(sec){
+  const v=document.getElementById('videoEl');
+  v.currentTime=Math.max(0,v.currentTime-sec);
+  sendSyncCmd('seek',v.currentTime);
+  addSystemMsg(`Admin ${sec}s পিছিয়ে গেলো ⏪`);
+}
+
+// ===== CHUNK UTILS =====
+function setChunk(idx,state){
+  if(idx<0||idx>=chunkStates.length)return;
+  chunkStates[idx]=state;
+  const tiles=document.querySelectorAll('.chunk-tile');
+  if(tiles[idx])tiles[idx].className='chunk-tile '+state;
+  updateBufStats();
+}
+
+function renderChunkBar(){
+  const bar=document.getElementById('chunkBar');
+  bar.innerHTML='';
+  chunkStates.forEach((s,i)=>{
+    const el=document.createElement('div');
+    el.className='chunk-tile '+s;
+    el.title=`Chunk #${i+1}`;
+    bar.appendChild(el);
+  });
+}
+
+function updateBufStats(){
+  const buf=chunkStates.filter(s=>s==='buffered'||s==='active').length;
+  document.getElementById('bufferedChunks').textContent=buf;
+  const pct=totalChunks?(buf/totalChunks*100):0;
+  document.getElementById('bufferProgress').style.width=pct+'%';
+}
+
+function trackChunk(){
+  const v=document.getElementById('videoEl');
+  if(!v||!totalSize)return;
+  const playBytes=(v.currentTime/(v.duration||1))*totalSize;
+  const pi=Math.floor(playBytes/CHUNK_SIZE);
+  if(pi!==activeChunkIdx&&pi<totalChunks){
+    if(activeChunkIdx<totalChunks&&chunkStates[activeChunkIdx]==='active')setChunk(activeChunkIdx,'buffered');
+    activeChunkIdx=pi;
+    if(chunkStates[activeChunkIdx]==='buffered')setChunk(activeChunkIdx,'active');
+  }
+}
+
+function updateSpeed(){
+  const el=(Date.now()-startTime)/1000;
+  if(el>0&&bytesLoaded>0)document.getElementById('speedVal').textContent=formatSpeed(bytesLoaded/el);
+}
+
+function getMime(ct){
+  if(ct.includes('webm'))return'video/webm; codecs="vp8, vorbis"';
+  if(ct.includes('ogg'))return'video/ogg; codecs="theora, vorbis"';
+  return'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+}
+
+// ===== PLAYER UTILS =====
+function showVideo(){
+  document.getElementById('playerPlaceholder').style.display='none';
+  document.getElementById('videoEl').style.display='block';
+}
+
+function showLoader(){
+  document.getElementById('playerPlaceholder').innerHTML='<div class="big-icon" style="animation:pulse 1s infinite">⏳</div><p>লোড হচ্ছে...</p>';
+  document.getElementById('playerPlaceholder').style.display='flex';
+  document.getElementById('videoEl').style.display='none';
+}
+
+// ===== CHUNK DOWNLOAD =====
+async function startChunkDownload(){
+  if(!currentUrl){showToast('কোনো URL নেই');return;}
+  document.getElementById('dlOverlay').style.display='block';
+  const chunks=[];
+  const total=totalChunks||10;
+
+  for(let i=0;i<total;i++){
+    if(stopped)break;
+    const s=i*CHUNK_SIZE,e=Math.min(s+CHUNK_SIZE-1,totalSize-1);
+    document.getElementById('dlInfo').textContent=`Chunk ${i+1}/${total} ডাউনলোড হচ্ছে...`;
+    document.getElementById('dlFill').style.width=((i/total)*100)+'%';
+    try{
+      const r=await fetch(currentUrl,{headers:totalSize?{'Range':`bytes=${s}-${e}`}:{}});
+      chunks.push(await r.arrayBuffer());
+    }catch(e){break;}
+  }
+
+  document.getElementById('dlFill').style.width='100%';
+  document.getElementById('dlInfo').textContent='Merge করছি...';
+  setTimeout(()=>{
+    const blob=new Blob(chunks,{type:'video/mp4'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='streambox_'+Date.now()+'.mp4';
+    a.click();
+    document.getElementById('dlOverlay').style.display='none';
+    showToast('✓ ডাউনলোড শুরু হয়েছে!');
+  },500);
+}
+
+function directDownload(){
+  const a=document.createElement('a');a.href=currentUrl;a.download='';a.target='_blank';a.click();
+}
+
+// ===== CHAT =====
+async function sendMessage(){
+  const inp=document.getElementById('chatInput');
+  const text=inp.value.trim();
+  if(!text)return;
+  inp.value='';
+
+  const msg={
+    id:genId(),name:myName,uid:myId,
+    text,color:colorFor(myName),
+    ts:Date.now()
   };
-  set(ref(db,'room/videoState'), state);
+  await db.ref(`rooms/${roomCode}/chat`).push(msg);
 }
 
-function syncVideoState(state){
-  if(isAdmin) return;
-  if(ytFrame.style.display !== 'none') return; // YT handles itself
-  if(!videoEl.src) return;
+function appendMessage(msg){
+  const area=document.getElementById('messagesArea');
+  const isOwn=msg.uid===myId;
+  const isSystem=msg.type==='system';
 
-  // Calculate expected time accounting for server latency
-  const lag = (Date.now() - state.serverTime) / 1000;
-  const expectedTime = state.currentTime + (state.playing ? lag : 0);
-  const diff = Math.abs(videoEl.currentTime - expectedTime);
+  const div=document.createElement('div');
+  div.className='msg-bubble'+(isOwn?' own':'')+(isSystem?' system':'');
 
-  if(diff > 1.5){
-    isSyncing = true;
-    showSyncOverlay(true);
-    videoEl.currentTime = expectedTime;
-    setTimeout(()=>{ isSyncing=false; showSyncOverlay(false); }, 1500);
-  }
+  const time=new Date(msg.ts).toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'});
 
-  if(state.playing && videoEl.paused && !isSyncing){
-    videoEl.play().catch(()=>{});
-    updateSyncStatus(true);
-  } else if(!state.playing && !videoEl.paused){
-    videoEl.pause();
-    updateSyncStatus(true);
+  if(isSystem){
+    div.innerHTML=`<div class="msg-text">${msg.text}</div>`;
   } else {
-    updateSyncStatus(diff < 2);
+    div.innerHTML=`
+      <div class="msg-header">
+        <div class="msg-avatar" style="background:${msg.color}">${initial(msg.name)}</div>
+        <span class="msg-name">${msg.name}</span>
+        <span class="msg-time">${time}</span>
+      </div>
+      <div class="msg-text">${escHtml(msg.text)}</div>
+    `;
   }
-}
-
-function showSyncOverlay(show){
-  document.getElementById('syncOverlay').classList.toggle('show', show);
-}
-
-function updateSyncStatus(synced){
-  const ind = document.getElementById('syncIndicator');
-  const txt = document.getElementById('syncStatusText');
-  ind.className = 'sync-indicator ' + (synced ? 'synced' : 'desynced');
-  txt.textContent = synced ? 'Admin এর সাথে সিঙ্ক হয়েছে ✓' : 'সিঙ্ক হচ্ছে...';
-}
-
-// ====== LOAD VIDEO ======
-window.adminLoadVideo = function(){
-  const url = document.getElementById('urlInput').value.trim();
-  if(!url){ return; }
-
-  if(url.includes('youtube.com') || url.includes('youtu.be')){
-    let videoId = '';
-    try{ const u=new URL(url); videoId=u.searchParams.get('v')||u.pathname.split('/').pop(); }catch(e){}
-    if(!videoId){ addSystemMsg('YouTube ID পাওয়া গেলো না', 'error'); return; }
-    currentVideoUrl = url;
-    loadVideoUrl(url, true);
-    set(ref(db,'room/videoState'),{ url, isYT:true, playing:true, currentTime:0, serverTime:Date.now() });
-    addSystemMsg('YouTube ভিডিও লোড হয়েছে 🎥');
-    return;
-  }
-
-  currentVideoUrl = url;
-  loadVideoUrl(url, false);
-  set(ref(db,'room/videoState'),{ url, isYT:false, playing:false, currentTime:0, serverTime:Date.now() });
-  addSystemMsg('ভিডিও লোড হয়েছে ▶');
-};
-
-function loadVideoUrl(url, isYT){
-  document.getElementById('idleScreen').style.display = 'none';
-  if(isYT){
-    let videoId = '';
-    try{ const u=new URL(url); videoId=u.searchParams.get('v')||u.pathname.split('/').pop(); }catch(e){}
-    videoEl.style.display = 'none';
-    ytFrame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
-    ytFrame.style.display = 'block';
-    document.getElementById('adminControls').classList.add('hidden');
-    if(isAdmin) addSystemMsg('YouTube: Admin controls সীমিত (YouTube API সীমাবদ্ধতা)', 'warn');
-  } else {
-    ytFrame.style.display = 'none';
-    ytFrame.src = '';
-    videoEl.src = url;
-    videoEl.style.display = 'block';
-    videoEl.load();
-    if(!isAdmin){ videoEl.play().catch(()=>{}); }
-
-    videoEl.ontimeupdate = () => {
-      updateSeekBar();
-      if(isAdmin) {
-        // push every 3 seconds
-        if(Math.floor(videoEl.currentTime) % 3 === 0 && Math.floor(videoEl.currentTime) !== Math.floor(lastKnownTime)){
-          lastKnownTime = videoEl.currentTime;
-          pushVideoState();
-        }
-      }
-    };
-    videoEl.onplay = () => { if(isAdmin){ document.getElementById('playPauseBtn').textContent='⏸'; pushVideoState(); } };
-    videoEl.onpause = () => { if(isAdmin){ document.getElementById('playPauseBtn').textContent='▶'; pushVideoState(); } };
-    videoEl.ondurationchange = () => {
-      document.getElementById('durationDisplay').textContent = formatTime(videoEl.duration);
-    };
-  }
-}
-
-// ====== ADMIN CONTROLS ======
-window.adminPlayPause = function(){
-  if(!isAdmin) return;
-  if(videoEl.paused){ videoEl.play(); } else { videoEl.pause(); }
-  pushVideoState();
-};
-
-window.adminSeek = function(delta){
-  if(!isAdmin) return;
-  videoEl.currentTime = Math.max(0, videoEl.currentTime + delta);
-  pushVideoState();
-};
-
-window.adminSeekTo = function(e){
-  if(!isAdmin) return;
-  const track = document.getElementById('seekTrack');
-  const rect = track.getBoundingClientRect();
-  const pct = (e.clientX - rect.left) / rect.width;
-  videoEl.currentTime = pct * (videoEl.duration || 0);
-  pushVideoState();
-};
-
-window.setVolume = function(v){ videoEl.volume = v; };
-window.toggleMute = function(){
-  isMuted = !isMuted;
-  videoEl.muted = isMuted;
-  document.querySelector('.vol-icon').textContent = isMuted ? '🔇' : '🔊';
-};
-
-function updateSeekBar(){
-  const dur = videoEl.duration || 0;
-  const ct = videoEl.currentTime || 0;
-  const pct = dur ? (ct/dur)*100 : 0;
-  document.getElementById('seekFilled').style.width = pct + '%';
-  document.getElementById('seekThumb').style.right = 'auto';
-  document.getElementById('seekThumb').style.left = pct + '%';
-  document.getElementById('currentTimeDisplay').textContent = formatTime(ct);
-}
-
-function formatTime(s){
-  if(isNaN(s)) return '0:00';
-  const m = Math.floor(s/60);
-  const sec = Math.floor(s%60);
-  return m + ':' + sec.toString().padStart(2,'0');
-}
-
-// ====== CHAT ======
-window.chatKeydown = function(e){
-  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
-};
-
-window.sendChat = function(){
-  const input = document.getElementById('chatInput');
-  const text = input.value.trim();
-  if(!text) return;
-  input.value = '';
-  const msgRef = ref(db,'room/chat');
-  push(msgRef,{ name:myName, role:isAdmin?'admin':'viewer', text, ts:Date.now() });
-};
-
-function appendChatMsg(m, id){
-  const box = document.getElementById('messagesBox');
-  const el = document.createElement('div');
-  el.className = 'msg';
-  el.dataset.msgid = id;
-  const avatar = getAvatar(m.name || '?');
-  el.innerHTML = `
-    <div class="msg-avatar">${avatar}</div>
-    <div class="msg-body">
-      <div class="msg-name ${m.role==='admin'?'admin-name':'viewer-name'}">${escHtml(m.name)} ${m.role==='admin'?'👑':''}</div>
-      <div class="msg-text">${escHtml(m.text)}</div>
-    </div>`;
-  box.appendChild(el);
-  box.scrollTop = box.scrollHeight;
+  area.appendChild(div);
+  area.scrollTop=area.scrollHeight;
 }
 
 function addSystemMsg(text){
-  const box = document.getElementById('messagesBox');
-  const el = document.createElement('div');
-  el.className = 'msg-system';
-  el.textContent = '— ' + text + ' —';
-  box.appendChild(el);
-  box.scrollTop = box.scrollHeight;
-}
-
-function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-// ====== VIEWERS ======
-function renderViewers(users){
-  const tab = document.getElementById('viewersTab');
-  tab.innerHTML = '';
-  Object.values(users).forEach(u => {
-    const el = document.createElement('div');
-    el.className = 'viewer-item';
-    el.innerHTML = `
-      <div class="v-avatar">${getAvatar(u.name||'?')}</div>
-      <div>
-        <div class="v-name">${escHtml(u.name)}</div>
-        <div class="v-role ${u.role}">${u.role==='admin'?'Admin 👑':'Viewer'}</div>
-      </div>`;
-    tab.appendChild(el);
+  db.ref(`rooms/${roomCode}/chat`).push({
+    id:genId(),type:'system',text,ts:Date.now()
   });
 }
 
-// ====== VOICE CHAT (WebRTC) ======
-window.toggleVoice = async function(){
-  if(!isVoiceActive){
-    try{
-      voiceStream = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
-      isVoiceActive = true;
-      const btn = document.getElementById('voiceBtn');
-      btn.textContent = '🔴 ভয়েস বন্ধ করো';
-      btn.classList.add('active');
-      set(ref(db,`room/voice/${myId}`),{ name:myName, speaking:false });
-      onDisconnect(ref(db,`room/voice/${myId}`)).remove();
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
-      // Detect speaking
-      const ctx = new AudioContext();
-      const analyser = ctx.createAnalyser();
-      const src = ctx.createMediaStreamSource(voiceStream);
-      src.connect(analyser);
-      analyser.fftSize = 512;
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      let speakingState = false;
-      setInterval(()=>{
-        analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a,b)=>a+b,0)/data.length;
-        const isSpeaking = avg > 15;
-        if(isSpeaking !== speakingState){
-          speakingState = isSpeaking;
-          set(ref(db,`room/voice/${myId}/speaking`), isSpeaking);
-        }
-      },200);
+// ===== VIEWERS RENDER =====
+function renderViewers(members){
+  const list=document.getElementById('viewersList');
+  list.innerHTML='';
+  Object.values(members).sort((a,b)=>b.isAdmin-a.isAdmin).forEach(m=>{
+    const div=document.createElement('div');
+    div.className='viewer-row';
+    div.innerHTML=`
+      <div class="v-avatar" style="background:${m.color}">${initial(m.name)}</div>
+      <div class="v-name">${m.name}</div>
+      ${m.isAdmin?'<span class="v-admin-tag">ADMIN</span>':''}
+    `;
+    list.appendChild(div);
+  });
+}
 
-      addSystemMsg(myName + ' ভয়েসে যোগ দিলেন 🎤');
-    } catch(e){
-      alert('মাইক্রোফোন অ্যাক্সেস পাওয়া যায়নি: ' + e.message);
+// ===== VOICE CHAT (WebRTC) =====
+async function toggleMic(){
+  if(!isMicOn){ await startMic(); } else { stopMic(); }
+}
+
+async function startMic(){
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    isMicOn=true;
+    document.getElementById('micBtn').textContent='🔴';
+    document.getElementById('micBtn').classList.add('active');
+    document.getElementById('voiceLabel').textContent='মাইক চালু আছে';
+    document.getElementById('voiceSub').textContent='কথা বলুন... সবাই শুনতে পাবে';
+
+    // Signal other peers
+    db.ref(`rooms/${roomCode}/members`).once('value').then(snap=>{
+      const members=snap.val()||{};
+      Object.keys(members).filter(uid=>uid!==myId).forEach(uid=>initiateCall(uid));
+    });
+
+    db.ref(`rooms/${roomCode}/voiceActive/${myId}`).set({name:myName,color:colorFor(myName),ts:Date.now()});
+    db.ref(`rooms/${roomCode}/voiceActive/${myId}`).onDisconnect().remove();
+    updateSpeakers();
+    showToast('🎙️ মাইক চালু হয়েছে');
+  }catch(e){showToast('মাইক অ্যাক্সেস করা যায়নি');}
+}
+
+function stopMic(){
+  if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;}
+  isMicOn=false;
+  document.getElementById('micBtn').textContent='🎙️';
+  document.getElementById('micBtn').classList.remove('active');
+  document.getElementById('voiceLabel').textContent='মাইক বন্ধ';
+  document.getElementById('voiceSub').textContent='মাইক বাটন চাপুন';
+  Object.values(peerConnections).forEach(pc=>pc.close());
+  peerConnections={};
+  db.ref(`rooms/${roomCode}/voiceActive/${myId}`).remove();
+  showToast('🔇 মাইক বন্ধ হয়েছে');
+}
+
+function updateSpeakers(){
+  db.ref(`rooms/${roomCode}/voiceActive`).on('value',snap=>{
+    const active=snap.val()||{};
+    const list=document.getElementById('speakersList');
+    list.innerHTML='';
+    if(Object.keys(active).length===0){
+      list.innerHTML='<div style="font-size:0.78rem;color:var(--muted);text-align:center;padding:1rem;">কেউ এখনো কথা বলছে না</div>';
+      return;
     }
-  } else {
-    if(voiceStream) voiceStream.getTracks().forEach(t=>t.stop());
-    isVoiceActive = false;
-    const btn = document.getElementById('voiceBtn');
-    btn.textContent = '🎤 ভয়েস চ্যাট চালু করো';
-    btn.classList.remove('active');
-    remove(ref(db,`room/voice/${myId}`));
-    addSystemMsg(myName + ' ভয়েস থেকে বের হলেন');
-  }
-};
-
-function renderVoiceUsers(voices){
-  const box = document.getElementById('voiceUsers');
-  const keys = Object.keys(voices);
-  if(keys.length === 0){
-    box.innerHTML = '<span class="voice-empty">কেউ কথা বলছে না...</span>';
-    return;
-  }
-  box.innerHTML = '';
-  keys.forEach(k => {
-    const v = voices[k];
-    const el = document.createElement('div');
-    el.className = 'voice-user' + (v.speaking?' speaking':'');
-    el.innerHTML = `<div class="voice-dot"></div><span>${escHtml(v.name)}</span>`;
-    box.appendChild(el);
+    Object.values(active).forEach(u=>{
+      const d=document.createElement('div');
+      d.className='speaker-row';
+      d.innerHTML=`
+        <div class="msg-avatar" style="background:${u.color};width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;">${initial(u.name)}</div>
+        <span style="font-size:0.8rem;font-weight:600;flex:1;">${u.name}</span>
+        <div class="speaker-wave"><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div></div>
+      `;
+      list.appendChild(d);
+    });
   });
 }
 
-// ====== TABS ======
-window.switchTab = function(tab, btn){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('chatTab').style.display = tab==='chat' ? 'flex' : 'none';
-  document.getElementById('viewersTab').classList.toggle('hidden', tab!=='viewers');
-};
+async function initiateCall(targetUid){
+  const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  peerConnections[targetUid]=pc;
 
-// Sync poll every 5s for viewers
-setInterval(()=>{
-  if(!isAdmin && videoEl.src && !videoEl.paused){
-    // re-read latest state from Firebase to stay in sync
+  if(micStream)micStream.getTracks().forEach(t=>pc.addTrack(t,micStream));
+
+  pc.ontrack=e=>{
+    const audio=new Audio();audio.srcObject=e.streams[0];audio.autoplay=true;audio.play().catch(()=>{});
+  };
+
+  pc.onicecandidate=e=>{
+    if(e.candidate){
+      db.ref(`rooms/${roomCode}/signals/${targetUid}/${myId}_ice`).push({ice:e.candidate.toJSON(),from:myId});
+    }
+  };
+
+  const offer=await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  db.ref(`rooms/${roomCode}/signals/${targetUid}/${myId}_offer`).set({offer:offer.sdp,from:myId});
+}
+
+async function handleSignal(key,data){
+  if(!data||!data.from||data.from===myId)return;
+  const from=data.from;
+
+  if(data.offer){
+    const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    peerConnections[from]=pc;
+    if(micStream)micStream.getTracks().forEach(t=>pc.addTrack(t,micStream));
+    pc.ontrack=e=>{
+      const audio=new Audio();audio.srcObject=e.streams[0];audio.autoplay=true;audio.play().catch(()=>{});
+    };
+    pc.onicecandidate=e=>{
+      if(e.candidate){
+        db.ref(`rooms/${roomCode}/signals/${from}/${myId}_ice`).push({ice:e.candidate.toJSON(),from:myId});
+      }
+    };
+    await pc.setRemoteDescription(new RTCSessionDescription({type:'offer',sdp:data.offer}));
+    const ans=await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    db.ref(`rooms/${roomCode}/signals/${from}/${myId}_answer`).set({answer:ans.sdp,from:myId});
   }
-}, 5000);
+
+  if(data.answer&&peerConnections[from]){
+    await peerConnections[from].setRemoteDescription(new RTCSessionDescription({type:'answer',sdp:data.answer}));
+  }
+
+  if(data.ice&&peerConnections[from]){
+    try{await peerConnections[from].addIceCandidate(new RTCIceCandidate(data.ice));}catch(e){}
+  }
+}
+
+// ===== CHAT TABS =====
+function switchChatTab(tab){
+  document.querySelectorAll('.chat-tab').forEach((b,i)=>b.classList.toggle('active',['chat','voice','viewers'][i]===tab));
+  document.getElementById('chatTabContent').style.display=tab==='chat'?'flex':'none';
+  document.getElementById('voiceTabContent').style.display=tab==='voice'?'block':'none';
+  document.getElementById('viewersTabContent').style.display=tab==='viewers'?'block':'none';
+}
+
+// ===== LEAVE =====
+async function leaveRoom(){
+  stopMic();
+  stopped=true;
+  clearInterval(simInt);clearInterval(speedInterval);
+  await db.ref(`rooms/${roomCode}/members/${myId}`).remove();
+  if(isAdmin) await db.ref(`rooms/${roomCode}`).remove();
+  location.reload();
+}
+
+// ===== PERIODIC SYNC (admin broadcasts time every 5s) =====
+setInterval(()=>{
+  if(!isAdmin||!roomCode)return;
+  const v=document.getElementById('videoEl');
+  if(!v||!v.src)return;
+  db.ref(`rooms/${roomCode}/syncCmd`).set({
+    type:v.paused?'pause':'play',
+    time:v.currentTime,ts:Date.now(),by:myId
+  });
+},5000);
+
+// Track chunk playback
+setInterval(()=>{
+  const v=document.getElementById('videoEl');
+  if(v&&v.src&&!v.paused&&totalSize>0)trackChunk();
+},500);
+
+// Chat enter key
+document.getElementById('chatInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter')sendMessage();
+});
+
+// Prevent viewer from controlling video
+document.getElementById('videoEl').addEventListener('play',e=>{
+  if(!isAdmin){/* viewers can play locally */}
+});
+document.getElementById('videoEl').addEventListener('seeking',e=>{
+  if(!isAdmin){/* allow local seek for buffering */}
+});
 </script>
 </body>
 </html>
