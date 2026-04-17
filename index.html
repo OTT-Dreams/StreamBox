@@ -663,7 +663,7 @@ body {
 <div id="toast"></div>
 
 <!-- ═══ SPLASH ═══ -->
-<div id="splash">
+<div id="splash" style="display:none;">
   <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(232,193,90,0.06) 0%, transparent 70%);pointer-events:none;"></div>
   <div class="splash-logo">CINEROOM</div>
   <div class="splash-sub">Watch Together · Anywhere</div>
@@ -961,9 +961,12 @@ window.addEventListener('firebase-ready', () => {
       if (roomCode) {
         setTimeout(() => joinRoom(roomCode), 500);
       }
+    } else {
+      $('splash').style.display = 'flex';
+      $('lobby').style.display = 'none';
+      $('room').style.display = 'none';
     }
   });
-});
 
 function enterLobby() {
   $('splash').style.display = 'none';
