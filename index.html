@@ -907,6 +907,12 @@ let videoType = 'html5'; // 'html5' | 'youtube' | 'drive'
 let audioTracks = [];
 
 const $ = id => document.getElementById(id);
+  function enterLobby() {
+  $('splash').style.display = 'none';
+  $('lobby').style.display = 'block';
+  $('lobby-avatar').src = currentUser.photoURL || '';
+  $('lobby-name').textContent = currentUser.displayName || currentUser.email;
+}
 const firebase = () => window._firebase;
 
 // ═══════════════════════════════════
@@ -1437,7 +1443,7 @@ function handleVideoSync(data) {
     showVideoWrapper('drive');
   }
 }
-
+}
   // Sync time (allow 2s drift)
   if (data.type === 'html5' && !isAdmin) {
     const now = Date.now();
