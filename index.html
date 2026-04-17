@@ -638,7 +638,7 @@ body::after{
           <div class="big-icon">🎬</div>
           <p>Admin ভিডিও লোড করলে শুরু হবে...</p>
         </div>
-        <video id="videoEl" controls></video>
+        <video id="videoEl"></video>
       </div>
 
       <!-- Admin controls -->
@@ -776,7 +776,9 @@ let ignoreNextSync = false;
 let roomRef = null;
 let listeners = [];
 let CHUNK_SIZE = 1 * 1024 * 1024;
+let syncAllowed = false;
 const COLORS = ['#7c6aff','#ff5f7e','#00e5a0','#f5a623','#60a5fa','#f472b6','#34d399','#fb923c'];
+
 
 // ===== UTILS =====
 function genId(){ return Math.random().toString(36).slice(2,10); }
@@ -934,8 +936,9 @@ function setupListeners(){
 
 // ===== SYNC COMMANDS =====
 function sendSyncCmd(type, time){
+  const offset = firebase.database.ServerValue.TIMESTAMP;
   db.ref(`rooms/${roomCode}/syncCmd`).set({
-    type, time: time||0, ts: Date.now(), by: myId, _t: Date.now()
+    type, time: time||0, serverTs: offset, clientTs: Date.now(), by: myId, _t: Date.now()
   });
 }
 
@@ -943,11 +946,17 @@ function handleSyncCmd(cmd){
   if(!cmd || isAdmin) return;
   const video = document.getElementById('videoEl');
   if(!video.src && !video.currentSrc) return;
-  if(Date.now() - cmd.ts > 10000) return;
-  const age = (Date.now() - cmd.ts) / 1000;
+  if(Date.now() - cmd.clientTs > 10000) return;
+
+  syncAllowed = true;
+  setTimeout(()=>{ syncAllowed = false; }, 500);
+
+  // server timestamp দিয়ে accurate age calculation
+  const age = cmd.serverTs ? (Date.now() - cmd.serverTs) / 1000 : (Date.now() - cmd.clientTs) / 1000;
+
   if(cmd.type === 'play'){
     const target = cmd.time + age;
-    if(Math.abs(video.currentTime - target) > 1.0) video.currentTime = target;
+    video.currentTime = target;
     video.play().catch(()=>{});
     document.getElementById('syncStatus').textContent='▶ PLAY';
     document.getElementById('syncStatus').style.color='var(--accent3)';
@@ -958,9 +967,6 @@ function handleSyncCmd(cmd){
     document.getElementById('syncStatus').style.color='var(--accent4)';
   } else if(cmd.type === 'seek'){
     video.currentTime = cmd.time;
-    // pause করবে না, শুধু সময় ঠিক করবে
-    document.getElementById('syncStatus').textContent='⏪ SYNCED';
-    document.getElementById('syncStatus').style.color='var(--accent)';
   }
 }
 
@@ -1462,7 +1468,10 @@ setInterval(()=>{
   if(v.paused) return; // admin pause থাকলে periodic sync পাঠাবে না
   db.ref(`rooms/${roomCode}/syncCmd`).set({
     type:'play',
-    time:v.currentTime,ts:Date.now(),by:myId,_t:Date.now()
+    time:v.currentTime,
+    serverTs: firebase.database.ServerValue.TIMESTAMP,
+    clientTs: Date.now(),
+    by:myId,_t:Date.now()
   });
 },5000);
 
@@ -1479,10 +1488,14 @@ document.getElementById('chatInput').addEventListener('keydown',e=>{
 
 // Prevent viewer from controlling video
 document.getElementById('videoEl').addEventListener('play',e=>{
-  if(!isAdmin){/* viewers can play locally */}
+  if(!isAdmin && !syncAllowed){
+    document.getElementById('videoEl').pause();
+  }
 });
-document.getElementById('videoEl').addEventListener('seeking',e=>{
-  if(!isAdmin){/* allow local seek for buffering */}
+document.getElementById('videoEl').addEventListener('pause',e=>{
+  if(!isAdmin && !syncAllowed){
+    // viewer নিজে pause করতে পারবে না
+  }
 });
 </script>
 </body>
