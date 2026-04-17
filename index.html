@@ -1394,7 +1394,7 @@ function fmtTime(s) {
 // FIREBASE VIDEO SYNC
 // ═══════════════════════════════════
 async function pushVideoState(patch) {
-  if (!currentRoom) return;
+  if (!currentRoom || !isAdmin) return;
   const { db, ref, get, set } = firebase();
   const vidRef = ref(db, `rooms/${currentRoom}/video`);
   const snap = await get(vidRef);
@@ -1406,24 +1406,34 @@ function handleVideoSync(data) {
   if (!data || !data.src) return;
   const video = $('main-video');
 
-  // Load video if not loaded
-  if (data.type === 'html5' && video.src !== data.src) {
-    video.src = data.src;
-    video.load();
-    video.oncanplay = () => {
-      $('viewer-waiting').style.display = 'none';
-      showVideoWrapper('html5');
-      if (data.playing) video.play().catch(()=>{});
-      if (data.currentTime) video.currentTime = data.currentTime;
-      detectAudioTracks();
-    };
+  if (data.type === 'html5') {
+    if (video.src !== data.src) {
+      video.src = data.src;
+      video.load();
+      video.oncanplay = () => {
+        showVideoWrapper('html5');
+        const elapsed = data.playing ? (Date.now() - data.ts) / 1000 : 0;
+        video.currentTime = (data.currentTime || 0) + elapsed;
+        if (data.playing) video.play().catch(() => {});
+        detectAudioTracks();
+      };
+    } else {
+      const elapsed = data.playing ? (Date.now() - data.ts) / 1000 : 0;
+      const expectedTime = (data.currentTime || 0) + elapsed;
+      if (Math.abs(video.currentTime - expectedTime) > 2) {
+        video.currentTime = expectedTime;
+      }
+      if (data.playing && video.paused) video.play().catch(() => {});
+      else if (!data.playing && !video.paused) video.pause();
+    }
   } else if (data.type === 'youtube') {
-    $('yt-player').src = data.src;
+    if ($('yt-player').src !== data.src) $('yt-player').src = data.src;
     showVideoWrapper('youtube');
   } else if (data.type === 'drive') {
-    $('drive-player').src = data.src;
+    if ($('drive-player').src !== data.src) $('drive-player').src = data.src;
     showVideoWrapper('drive');
   }
+}
 
   // Sync time (allow 2s drift)
   if (data.type === 'html5' && !isAdmin) {
