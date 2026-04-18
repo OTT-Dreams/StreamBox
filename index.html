@@ -295,12 +295,32 @@ body::after{
   animation:pulse 0.8s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
 
+/* Viewer custom controls */
+.viewer-controls-bar{
+  display:flex;align-items:center;justify-content:flex-end;
+  padding:6px 8px;background:rgba(0,0,0,0.6);
+  position:absolute;bottom:0;right:0;left:0;
+  z-index:10;
+  border-radius:0 0 var(--r) var(--r);
+}
+.btn-fs{
+  padding:5px 12px;border:1px solid var(--border);border-radius:6px;
+  background:rgba(255,255,255,0.1);color:#fff;
+  font-size:0.8rem;cursor:pointer;
+}
+
 /* Player */
 .player-outer{
   background:#000;border-radius:var(--r);overflow:hidden;
   border:1px solid var(--border);position:relative;
   min-height:240px;
 }
+.player-outer:has(#viewerControlsBar[style*="flex"]){
+  overflow:visible;
+}
+.player-outer:fullscreen{border-radius:0;}
+.player-outer:-webkit-full-screen{border-radius:0;}
+
 .player-placeholder{
   min-height:360px;display:flex;align-items:center;justify-content:center;
   flex-direction:column;gap:1rem;color:var(--muted);
@@ -309,6 +329,8 @@ body::after{
 .player-placeholder p{font-size:0.88rem;}
 
 #videoEl{width:100%;max-height:500px;display:none;background:#000;}
+#videoEl:fullscreen{max-height:100vh;width:100vw;}
+#videoEl:-webkit-full-screen{max-height:100vh;width:100vw;}
 
 /* Admin controls overlay */
 .admin-controls{
@@ -499,7 +521,19 @@ body::after{
 .notif.show{transform:translateX(0);}
 
 @media(max-width:768px){
-  .chat-panel{display:none;}
+  .app-body{flex-direction:column;}
+  .chat-panel{
+    display:flex;
+    width:100%;
+    height:380px;
+    border-left:none;
+    border-top:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .video-panel{
+    overflow-y:auto;
+    min-height:0;
+  }
   .info-row{grid-template-columns:repeat(2,1fr);}
   .app-header{padding:0.7rem 1rem;}
   .header-center{display:none;}
@@ -638,7 +672,10 @@ body::after{
           <div class="big-icon">🎬</div>
           <p>Admin ভিডিও লোড করলে শুরু হবে...</p>
         </div>
-        <video id="videoEl"></video>
+        <video id="videoEl" playsinline webkit-playsinline></video>
+<div class="viewer-controls-bar" id="viewerControlsBar" style="display:none;">
+  <button class="btn-fs" onclick="document.getElementById('videoEl').requestFullscreen()">⛶ Fullscreen</button>
+</div>
       </div>
 
       <!-- Admin controls -->
@@ -874,8 +911,15 @@ function enterApp(){
   }
 
   setupListeners();
-  addSystemMsg(`${myName} room এ যোগ দিয়েছে! 🎉`);
-  showToast(`✓ Room ${roomCode} এ যোগ দেওয়া হয়েছে!`);
+addSystemMsg(`${myName} room এ যোগ দিয়েছে! 🎉`);
+showToast(`✓ Room ${roomCode} এ যোগ দেওয়া হয়েছে!`);
+
+roomRef.on('value', snap=>{
+  if(!snap.exists() && !isAdmin){
+    showToast('⚠️ Admin room বন্ধ করে দিয়েছে!', 5000);
+    setTimeout(()=>location.reload(), 3000);
+  }
+});
 
   // Copy room code to clipboard
   navigator.clipboard?.writeText(roomCode).catch(()=>{});
@@ -957,14 +1001,17 @@ lastHandledTs = cmd._t;
   if(Date.now() - cmd.clientTs > 10000) return;
 
   syncAllowed = true;
-  setTimeout(()=>{ syncAllowed = false; }, 500);
+setTimeout(()=>{ syncAllowed = false; }, 2000);
 
   // server timestamp দিয়ে accurate age calculation
   const age = cmd.serverTs ? (Date.now() - cmd.serverTs) / 1000 : (Date.now() - cmd.clientTs) / 1000;
 
   if(cmd.type === 'play'){
     const target = cmd.time + age;
-    video.currentTime = target;
+    const diff = Math.abs((video.currentTime || 0) - target);
+    if(diff > 3){
+      video.currentTime = target;
+    }
     video.play().catch(()=>{});
     document.getElementById('syncStatus').textContent='▶ PLAY';
     document.getElementById('syncStatus').style.color='var(--accent3)';
@@ -1022,7 +1069,7 @@ async function viewerLoadVideo(url){
       v.currentTime = cmd.time;
       v.pause();
     }
-    setTimeout(()=>{ syncAllowed = false; }, 1500);
+    setTimeout(()=>{ syncAllowed = false; }, 2000);
   }, {once: true});
 }
 
@@ -1243,7 +1290,15 @@ function getMime(ct){
 // ===== PLAYER UTILS =====
 function showVideo(){
   document.getElementById('playerPlaceholder').style.display='none';
-  document.getElementById('videoEl').style.display='block';
+  const v = document.getElementById('videoEl');
+  v.style.display='block';
+  if(isAdmin){
+    v.setAttribute('controls','');
+    document.getElementById('viewerControlsBar').style.display='none';
+  } else {
+    v.removeAttribute('controls');
+    document.getElementById('viewerControlsBar').style.display='flex';
+  }
 }
 
 function showLoader(){
@@ -1519,12 +1574,12 @@ document.getElementById('chatInput').addEventListener('keydown',e=>{
 // Prevent viewer from controlling video
 document.getElementById('videoEl').addEventListener('play',e=>{
   if(!isAdmin && !syncAllowed){
-    document.getElementById('videoEl').pause();
-  }
-});
-document.getElementById('videoEl').addEventListener('pause',e=>{
-  if(!isAdmin && !syncAllowed){
-    document.getElementById('videoEl').play().catch(()=>{});
+    const v = document.getElementById('videoEl');
+    const saved = v.currentTime;
+    setTimeout(()=>{
+      v.pause();
+      v.currentTime = saved;
+    }, 50);
   }
 });
 </script>
